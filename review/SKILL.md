@@ -2,8 +2,8 @@
 name: Code Review
 description: Complete workflow for reviewing patches/commits, documenting findings, and formatting results
 author: pvalena
-version: 2.0.0
-tags: [code-review, documentation, formatting, security, quality]
+version: 2.1.0
+tags: [code-review, documentation, formatting, security, quality, verification, false-positives]
 ---
 
 # Code Review Skill
@@ -19,9 +19,28 @@ Use this skill when:
 - Creating both detailed review files and concise reasoning summaries
 - Ensuring review documentation meets formatting standards
 
+## Core Principles
+
+**Quality over quantity**: A single false positive destroys credibility. Every reported bug MUST be verified
+by reading the actual code.
+
+**Completeness is mandatory**: Missing commits means missing bugs. Always verify the commit count matches
+what was reviewed.
+
+**Evidence-based reviews**: Never report a bug you haven't seen in the actual code. Diffs can be misleading.
+Always read the full function context.
+
+**Zero tolerance for false positives**: If you find a false positive in your review:
+1. Remove it immediately
+2. Re-verify all other bugs in that review
+3. Update both review and reasoning files
+
 ## Complete Workflow
 
 ### Phase 0: Perform Code Review
+
+**IMPORTANT**: Before documenting any bug, you MUST verify it by reading the actual code. Diffs can be
+misleading. A false positive is worse than a missed bug.
 
 #### 1. Examine the Changes
 
@@ -264,7 +283,8 @@ awk 'length > 120 {print NR ": " substr($0, 1, 80) "..."}' reviews/FILE.md
 **Line Breaking Example:**
 ```markdown
 Before (>120 chars):
-- **NULL pointer dereference** (grub-core/lib/cmdline.c:53): `grub_loader_cmdline_size()` calls `check_arg(argv[i], 0)` passing NULL as second parameter.
+- **NULL pointer dereference** (grub-core/lib/cmdline.c:53): `grub_loader_cmdline_size()` calls
+  `check_arg(argv[i], 0)` passing NULL as second parameter.
 
 After (<120 chars):
 - **NULL pointer dereference** (grub-core/lib/cmdline.c:53): `grub_loader_cmdline_size()` calls
@@ -291,9 +311,157 @@ Critical: Enum grub_luks2_kdf_type in include/grub/luks2.h:26-30 missing LUKS2_K
 Code still references this value at luks2.c:107,506,510, causing compilation failure.
 ```
 
-### Phase 3: Verification
+### Phase 3: Verification & Quality Assurance
 
-#### 1. File Completeness Check
+**Critical**: Reviews must be accurate, complete, and free of false positives. A single false positive
+undermines credibility. Always verify findings by reading actual code.
+
+#### 1. Review Accuracy Verification (Avoid False Positives)
+
+**Problem**: Reviews may report bugs that don't actually exist due to:
+- Misunderstanding protocol semantics
+- Missing context (pointer set to NULL later in function)
+- Incorrect assumptions about data flow
+- Not seeing cleanup code outside the diff
+
+**Solution**: Verify EVERY reported bug by reading the actual code.
+
+**Verification process:**
+
+```bash
+# For each bug reported in reviews/*.md, verify it exists
+
+# Method 1: Read the specific function
+git show HEAD:path/to/file.c | grep -A 30 -B 10 "function_name"
+
+# Method 2: Check specific line numbers
+git show HEAD:path/to/file.c | sed -n '2090,2200p'
+
+# Method 3: Search for related cleanup code
+git show HEAD:path/to/file.c | grep -E "(= NULL|grub_free|cleanup)"
+```
+
+**Common false positive patterns:**
+
+**Double-free false positive:**
+```c
+grub_free(ptr);         // Line 100 - Review claims this causes double-free
+// ...
+ptr = NULL;             // Line 105 - Review MISSED this! Not a bug.
+// ...
+grub_free(ptr);         // Line 200 - Safe because ptr is NULL
+```
+
+**NULL dereference false positive:**
+```c
+if (param == NULL)      // Review missed this check at top of function
+  return;
+// ...
+*param = value;         // Review claims NULL deref - FALSE! Already checked.
+```
+
+**Resource leak false positive:**
+```c
+fd = open(...);
+if (!fd) {
+  cleanup_other();
+  return;               // Review claims fd leak
+}
+// Review missed: fd is 0 (invalid) when this returns, not a real fd
+```
+
+**Verification checklist for each reported bug:**
+- [ ] Can you see the exact bug in the actual code?
+- [ ] Is there cleanup code outside the visible diff?
+- [ ] Does the pointer get set to NULL before the second free?
+- [ ] Is there an early NULL check you missed?
+- [ ] Does the protocol/API guarantee something you didn't know?
+- [ ] Is the scenario actually reachable in practice?
+
+**Example: Verifying MR !42 double-free**
+
+```bash
+# Review claims: double-free in xhci.c:2099,2196
+# Verify by reading actual code
+
+git show HEAD:grub-core/bus/usb/xhci.c | sed -n '2090,2105p'
+# Line 2099: grub_free(cdata);
+# Line 2100-2105: NO "= NULL" assignment
+# ✓ First part confirmed
+
+git show HEAD:grub-core/bus/usb/xhci.c | sed -n '2140,2200p'
+# Line 2142-2143: cdata = transfer->controller_data;
+# Line 2196: grub_free(cdata);
+# ✓ Second free confirmed
+# ✓ BUG IS REAL - not a false positive
+```
+
+**If you find a false positive:**
+1. Remove it from the review file immediately
+2. Update reasoning file if it exists
+3. Re-verify other bugs in the same review (pattern of errors)
+
+#### 2. Completeness Verification (All Commits Reviewed)
+
+**Problem**: Reviews may miss commits, leaving bugs undetected.
+
+**Solution**: Always verify the commit count matches what was actually reviewed.
+
+**For branch-based reviews:**
+
+```bash
+# If you have a base commit reference
+git checkout BRANCH_NAME
+git log --oneline BASE_COMMIT..HEAD | wc -l
+# Compare count with review file
+
+# List all commits to verify each is documented
+git log --oneline BASE_COMMIT..HEAD
+```
+
+**For MR/PR-based reviews:**
+
+```bash
+# Count commits in the MR/PR
+git log --oneline origin/master..BRANCH_NAME | wc -l
+
+# Or use the PR/MR API
+gh pr view 42 --json commits --jq '.commits | length'
+glab mr view 42 --json | jq '.commits | length'
+```
+
+**Verification process:**
+
+1. **Count commits** in the actual branch/MR
+2. **Check review file** for number of commits listed
+3. **List all commit hashes** documented in review
+4. **Cross-reference** with actual git log output
+
+**Example: Verifying MR !39**
+
+```bash
+# Review claims: 5 commits
+git checkout 2025-05-0016
+git log --oneline c160b5861..HEAD | wc -l
+# Output: 9
+
+# ✗ INCOMPLETE - 4 commits missing from review!
+# Must re-review and add missing commits
+```
+
+**If commits are missing:**
+1. Identify which commits weren't reviewed
+2. Review the missing commits thoroughly
+3. Update the review file with ALL commits
+4. Check if missing commits contain critical fixes (often the case!)
+
+**Critical commits often missed:**
+- Small "fix typo" commits (may fix critical bugs)
+- "Address review comments" commits (contain important fixes)
+- Commits in the middle of a series
+- Merge commits that resolve conflicts
+
+#### 3. File Completeness Check
 
 **Verify file pairs:**
 - Every review file exists: `reviews/IDENTIFIER.md`
@@ -327,12 +495,15 @@ done
 
 **Expected output:** No files with lines over 120 chars
 
-#### 3. Content Quality Check
+#### 5. Content Quality Check
 
 For each review file, verify:
 - [ ] Title includes MR/PR/commit identifier
 - [ ] Summary paragraph describes the change
+- [ ] Correct commit count listed
+- [ ] All commits documented (hash + description)
 - [ ] Issues include file paths and line numbers
+- [ ] **Every bug verified by reading actual code (no false positives)**
 - [ ] Technical terminology is precise
 - [ ] Impact/consequences are stated
 - [ ] "No issues found" present if clean
@@ -341,6 +512,7 @@ For each reasoning file, verify:
 - [ ] Starts with severity level
 - [ ] Includes specific location (file:line)
 - [ ] Explains what is wrong, not how to fix
+- [ ] **Bug verified in actual code before documenting**
 - [ ] States consequences
 - [ ] No recommendations or subjective opinions
 
@@ -407,6 +579,40 @@ specialized hardware. No obvious issues in code structure but extensive testing 
 **Note**: Requires security/cryptography expertise. Implementation involves TPM measurements and DRTM
 beyond general code review scope. Recommend review by security team familiar with TCG D-RTM.
 ```
+
+### Verifying Fixes
+
+When a developer adds a commit claiming to fix an issue you reported, verify the fix is correct.
+
+**Process:**
+1. Read the review to understand the original bug
+2. Check out the branch with the fix commit
+3. Read the actual code to see if the fix addresses the root cause
+4. Verify no new bugs were introduced
+
+**Example: Verifying double-free fix**
+
+```bash
+# Review reported: Double-free in grub-core/commands/mfa.c
+# Developer added commit 3a43f715a claiming to fix it
+
+git checkout branch-with-fix
+git show 3a43f715a
+
+# Check the fix addresses the issue
+git show HEAD:grub-core/commands/mfa.c | sed -n '210,220p'
+# Line 212-214:
+#   password_ctx.password = NULL;
+#   password_ctx.password_len = 0;
+# ✓ Fix correctly nulls pointer after returning it - double-free prevented
+```
+
+**Verification checklist for fixes:**
+- [ ] Fix addresses the root cause (not just symptoms)
+- [ ] No new bugs introduced (e.g., didn't just move the problem)
+- [ ] Handles all code paths (including error paths)
+- [ ] Cleanup code is comprehensive
+- [ ] Fix is minimal and focused (doesn't change unrelated code)
 
 ## Anti-Patterns to Avoid
 
@@ -502,10 +708,12 @@ Adjust these based on project needs:
 After applying this skill, you should have:
 
 - ✓ Complete review file for each patch/commit (`*.md`)
+- ✓ **All commits verified as reviewed (no missing commits)**
+- ✓ **Every bug verified by reading actual code (zero false positives)**
 - ✓ Reasoning file for each review with issues (`*_reasoning.txt`)
 - ✓ All files formatted to width constraint (120 chars)
 - ✓ Clear, technical documentation of findings
-- ✓ Verification confirming completeness and quality
+- ✓ Verification confirming completeness, accuracy, and quality
 - ✓ Ready for sharing with developers/team
 
 ## Example End-to-End Session
@@ -514,30 +722,45 @@ After applying this skill, you should have:
 # 1. Review a specific MR/branch
 git checkout 2025-05-0103
 
-# 2. Examine the code
+# 2. Count commits (verify completeness)
+git log --oneline master..HEAD | wc -l
+# Output: 1 commit - remember this number
+
+# 3. Examine the code
 git log 2025-05-0103 --oneline
 git diff master...2025-05-0103
 
-# 3. Read actual code files
-vim grub-core/bus/usb/xhci.c
+# 4. Read actual code files (not just diffs!)
+git show HEAD:grub-core/bus/usb/xhci.c | less
 
-# 4. Create review file
+# 5. Create review file
 cat > reviews/2025-05-0103.md <<EOF
 # AI Review: MR !42 - Add xHCI support
 
-[Review content with findings]
+1 commit adds USB 3.0 (xHCI) controller driver. 2963 lines based on SeaBIOS implementation.
+
+- **Potential double-free** (grub-core/bus/usb/xhci.c:2099,2196): ...
 EOF
 
-# 5. Create reasoning file (if issues found)
+# 6. VERIFY the bug by reading actual code
+git show HEAD:grub-core/bus/usb/xhci.c | sed -n '2090,2105p'
+# Confirm: Line 2099 frees, no NULL assignment
+git show HEAD:grub-core/bus/usb/xhci.c | sed -n '2190,2200p'
+# Confirm: Line 2196 frees again
+# ✓ Bug verified - NOT a false positive
+
+# 7. Create reasoning file (if issues found)
 cat > reviews/2025-05-0103_reasoning.txt <<EOF
 Critical: Double-free at grub-core/bus/usb/xhci.c:2099,2196...
 EOF
 
-# 6. Format files
+# 8. Format files
 ./format_reviews.sh
 
-# 7. Verify
-./verify_reviews.sh
+# 9. Verify completeness and formatting
+git log --oneline master..HEAD | wc -l  # Should match review
+awk 'length > 120' reviews/2025-05-0103.md  # Should be empty
+awk 'length > 120' reviews/2025-05-0103_reasoning.txt  # Should be empty
 ```
 
 ## Reference
