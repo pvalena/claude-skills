@@ -1,9 +1,9 @@
 ---
 name: Documentation Refresh
-description: Systematic workflow for updating, synchronizing, and verifying project documentation
+description: Systematic workflow for updating, synchronizing, verifying, and garbage-collecting project documentation
 author: pvalena
-version: 1.0.0
-tags: [documentation, maintenance, consistency, verification, repository-state]
+version: 1.1.0
+tags: [documentation, maintenance, consistency, verification, repository-state, garbage-collection]
 ---
 
 # Documentation Refresh Skill
@@ -268,7 +268,191 @@ grep -oE 'docs/[A-Za-z_-]+\.md' CLAUDE.md MEMORY.md | while read ref; do
 done
 ```
 
-### Phase 4: Quality Checks
+### Phase 4: Garbage Collection
+
+**Goal**: Remove obsolete, redundant, or overly detailed information to keep documentation focused and maintainable.
+
+**When to garbage collect**:
+- Documentation files becoming too large (>500 lines for MEMORY.md, >200 for CLAUDE.md)
+- Redundant information across multiple files
+- Historical data that's not useful for future workflow
+- Overly detailed explanations better suited for other docs
+
+#### Evaluation Framework
+
+**The Key Question**: "Will this information help someone work in this repository in the future?"
+
+**Keep if**:
+- ✓ Needed for daily workflow (commands, procedures)
+- ✓ Critical context (base commits, repo structure)
+- ✓ Real examples with lessons learned
+- ✓ Quick reference information
+- ✓ Current state and statistics
+
+**Remove if**:
+- ✗ Historical data not needed for workflow
+- ✗ Information already in another doc (check CLAUDE.md first)
+- ✗ Overly detailed explanations (→ move to docs/*.md)
+- ✗ Long tables of closed/completed items
+- ✗ Redundant descriptions
+- ✗ "Recent work" details older than 1-2 cycles
+
+#### Garbage Collection Process
+
+**1. Analyze current state**:
+```bash
+# Check file sizes
+wc -l CLAUDE.md MEMORY.md docs/*.md
+
+# Identify potential bloat
+echo "Files over target size:"
+[ $(wc -l < CLAUDE.md) -gt 150 ] && echo "  CLAUDE.md: $(wc -l < CLAUDE.md) lines (target: ~120)"
+[ $(wc -l < MEMORY.md) -gt 350 ] && echo "  MEMORY.md: $(wc -l < MEMORY.md) lines (target: ~300)"
+```
+
+**2. Identify candidates for removal**:
+
+**In MEMORY.md**:
+- Long tables (e.g., 15+ rows of closed items)
+- "Authors completely removed" lists
+- Detailed "Recent Work" older than current cycle
+- Redundant file descriptions (if in CLAUDE.md)
+- Overly verbose explanations of workflows
+- Historical statistics older than 2-3 cycles
+
+**In CLAUDE.md**:
+- Detailed workflow steps (→ MEMORY.md or docs/*.md)
+- Long code examples (→ docs/*.md)
+- Duplicate classification explanations (→ relevant doc)
+- Statistics tables (keep summary only)
+- Process details (→ docs/*.md)
+
+**In docs/*.md**:
+- Outdated examples with old data
+- Redundant sections covered in other docs
+- Historical context not needed for procedures
+
+**3. Apply garbage collection**:
+
+**Example - MEMORY.md trim (602 → 279 lines, 53% reduction)**:
+
+```markdown
+REMOVED:
+- Long table of 15 closed MRs (historical, not needed)
+  ✗ | MR | Title | Author |
+  ✗ |----|-------|--------|
+  ✗ | !19 | ... | ... |
+  ✗ | !26 | ... | ... |
+  ✗ [13 more rows]
+
+- "Authors completely removed" list (not useful for future work)
+  ✗ - Leo Sandoval (all 4 MRs closed)
+  ✗ - khaalid cali (!44 only)
+  ✗ [3 more items]
+
+- Detailed "Recent Work" descriptions (historical record)
+  ✗ 1. ✅ Verified MR !42 review accuracy...
+  ✗ 2. ✅ Fixed MR !39 review completeness...
+  ✗ [10 more items]
+
+- Redundant file organization (already in CLAUDE.md)
+  ✗ ### Root Directory
+  ✗ - `duplicates.txt`: List of duplicate branches (65 entries)
+  ✗ - `authors.txt`: List of unique authors...
+  ✗ [20 more lines]
+
+- Overly detailed workflow explanations
+  ✗ **IMPORTANT**: Before documenting any bug, you MUST verify...
+  ✗ [5 paragraphs explaining why]
+  → Condensed to: **Critical principle**: NEVER report a bug without verifying...
+
+KEPT:
+- Current status (quick numbers) ✓
+- Quick file reference (WHERE things are) ✓
+- Complete review workflow (essential for work) ✓
+- GitLab config (repo-specific commands) ✓
+- Important review cases (real examples with lessons) ✓
+- Quick reference (essential commands) ✓
+- Statistics (current + brief historical) ✓
+```
+
+**4. Restructure if needed**:
+
+After removal, reorganize to maintain flow:
+```markdown
+# Before: Scattered, verbose (602 lines)
+## Current Status
+[50 lines of detailed numbers and descriptions]
+## Key Files
+[80 lines of file descriptions]
+## Recent Work (2026-03-27)
+[60 lines of completed items]
+## Closed MRs Removed
+[50 lines table]
+## Review Workflow
+[200 lines]
+
+# After: Focused, organized (279 lines)
+## Current Status
+[Brief summary: 15 lines]
+## Quick File Reference
+[Essential files only: 20 lines]
+## Review Workflow
+[Complete but concise: 130 lines]
+## Quick Reference
+[Commands: 20 lines]
+## Statistics
+[Current + historical: 15 lines]
+```
+
+**5. Document reduction**:
+
+Add note to commit or changelog:
+```
+Trimmed MEMORY.md: 602 → 279 lines (53% reduction)
+
+Removed:
+- Historical tables (closed MRs, removed authors)
+- Redundant file descriptions (already in CLAUDE.md)
+- Detailed recent work log (historical)
+- Verbose explanations (condensed to essentials)
+
+Kept:
+- Current state and workflows
+- Essential commands and examples
+- Real cases with lessons learned
+```
+
+#### Garbage Collection Checklist
+
+Before removing content:
+- [ ] Verified information not needed for future workflow
+- [ ] Checked if information exists elsewhere (CLAUDE.md, docs/*.md)
+- [ ] Preserved essential commands and examples
+- [ ] Kept lessons learned from important cases
+- [ ] Maintained document structure and flow
+- [ ] Updated cross-references if needed
+
+After garbage collection:
+- [ ] File size reduced to target range
+- [ ] No broken references or links
+- [ ] Document still makes sense standalone
+- [ ] All essential workflow information retained
+- [ ] Verified no duplication across files
+
+#### Target Sizes After Garbage Collection
+
+**Ideal ranges**:
+- **CLAUDE.md**: 100-150 lines (bare essentials)
+- **MEMORY.md**: 250-350 lines (working knowledge)
+- **docs/*.md**: 300-500 lines (detailed procedures)
+
+**Red flags** (time to garbage collect):
+- CLAUDE.md > 200 lines → Too detailed, move to MEMORY.md
+- MEMORY.md > 500 lines → Too verbose, contains historical data
+- Duplication between CLAUDE.md and MEMORY.md → Consolidate
+
+### Phase 5: Quality Checks
 
 #### 1. Formatting
 
