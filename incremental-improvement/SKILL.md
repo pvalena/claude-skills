@@ -1,409 +1,369 @@
 ---
 name: Incremental Improvement
-description: Evaluate workflow state, assess benefits, and identify high-impact incremental improvements
+description: Find the highest-impact achievable improvement in a workflow, implement it, and measure the result
 author: pvalena
-version: 1.0.0
-tags: [workflow, automation, analysis, productivity, incremental, improvement, roi, prioritization]
+version: 2.0.0
+tags: [workflow, automation, analysis, productivity, measurement, roi, prioritization]
 ---
 
 # Incremental Improvement Skill
 
-**Purpose**: Evaluate workflow state, assess benefits, and identify high-impact incremental improvements
+**Purpose**: Systematically find the single most impactful and achievable improvement in a workflow,
+measure the current state, implement the change, and verify measurable enhancement.
 
-## Overview
-
-This skill provides a systematic framework for identifying and prioritizing incremental improvements to existing workflows, codebases, and processes. It focuses on **high-ROI, low-effort changes** that can be implemented quickly while providing significant value.
-
-## When to Use
+## When to Use This Skill
 
 Use this skill when:
-- Completing a major workflow or project phase
-- Feeling that current processes could be more efficient
-- Looking for "quick wins" to improve productivity
-- Wanting to reduce repetitive manual work
-- Identifying pain points in current workflows
+- Completing a major workflow or project phase and want to improve the next cycle
+- Noticing repeated friction, errors, or wasted time in a process
+- Wanting a concrete, measurable win rather than a vague "things could be better"
+- Ready to invest 1-4 hours implementing one improvement and proving its value
 
-## Evaluation Framework
+## Core Principles
 
-### 1. Current State Assessment
+**One improvement at a time**: Don't brainstorm 10 ideas and implement none. Find the best one,
+implement it, measure it, then repeat the cycle.
 
-**Goal**: Understand what exists and how it's used
+**Measure first, improve second**: If you can't measure the current state, you can't prove the
+improvement worked. Baseline measurement is mandatory, not optional.
 
-**Questions to ask:**
-- What are the current workflows and processes?
-- What files/scripts/tools are in use?
-- What manual tasks are being performed repeatedly?
-- What documentation exists?
-- What quality checks are in place?
+**Impact x Achievability**: The best improvement is not the highest-impact one (too hard) or the
+easiest one (too trivial). It's the one where impact x achievability is maximized.
 
-**Output**: Clear picture of current state with identified patterns
+**Prove it worked**: An improvement without measured before/after data is just a guess. The cycle
+isn't complete until you have numbers showing the change delivered value.
 
-### 2. Pain Point Identification
+## Complete Workflow
 
-**Goal**: Find friction in the current workflow
+### Phase 1: Observe and Measure Current State
 
-**Look for:**
-- **Repetitive tasks** - Same commands run multiple times
-- **Manual verification** - Things that should be automated
-- **Inconsistencies** - Data that should match but doesn't
-- **Missing documentation** - Knowledge that exists only in heads
-- **Format violations** - Rules that aren't enforced automatically
-- **Fragmented knowledge** - Information scattered across files
+**Goal**: Find friction through observation and attach numbers to it.
 
-**Output**: List of pain points with severity (high/medium/low)
+Don't brainstorm abstractly. Instead, observe the actual workflow in action and record what you see.
 
-### 3. Improvement Brainstorming
+#### 1. Instrument the Workflow
 
-**Goal**: Generate potential solutions
+Run through the workflow (or review a recent execution) and record:
 
-**Categories of improvements:**
-
-#### **Automation**
-- Convert manual tasks to scripts
-- Add verification/validation scripts
-- Create quality check automation
-- Implement continuous checks
-
-**Examples:**
-- Manual documentation verification → `verify_docs.sh`
-- Manual format checking → `check_format.sh`
-- Repeated file creation → templates/
-
-#### **Documentation**
-- Fill documentation gaps
-- Create templates and examples
-- Add quick reference guides
-- Document common workflows
-
-**Examples:**
-- Missing workflow docs → add to MEMORY.md
-- Repeated file structure → create templates/
-- Scattered knowledge → consolidate in docs/
-
-#### **Tooling**
-- Create helper scripts
-- Build productivity commands
-- Add convenience functions
-- Implement shortcuts
-
-**Examples:**
-- Complex git commands → helper script
-- Multi-step process → single command
-- Common operations → alias or function
-
-#### **Process Improvements**
-- Standardize workflows
-- Add quality gates
-- Create checklists
-- Define clear procedures
-
-**Examples:**
-- Inconsistent reviews → standard template
-- Missing steps → documented checklist
-- Unclear process → step-by-step guide
-
-### 4. Benefit Assessment
-
-**Goal**: Evaluate impact vs. effort for each improvement
-
-**Assessment criteria:**
-
-| Criterion | Weight | Questions |
-|-----------|--------|-----------|
-| **Frequency** | High | How often is this needed? Daily? Weekly? |
-| **Time saved** | High | How much time will this save per use? |
-| **Error reduction** | High | Will this prevent mistakes/rework? |
-| **Implementation effort** | High | How long to implement? (hours/days) |
-| **Maintenance cost** | Medium | Will this need ongoing updates? |
-| **Learning curve** | Low | How hard to adopt? |
-
-**Scoring:**
-- **High ROI**: High frequency + significant time savings + low effort
-- **Medium ROI**: Moderate frequency or moderate savings + moderate effort
-- **Low ROI**: Infrequent need or minimal savings or high effort
-
-**Output**: Ranked list with scores
-
-### 5. Prioritization
-
-**Goal**: Select top 3-5 improvements to implement
-
-**Selection criteria:**
-1. **Quick wins first** - Can be done in <2 hours
-2. **High impact** - Addresses most painful problems
-3. **Low risk** - Won't break existing workflows
-4. **Composable** - Can build on each other
-
-**Priority tiers:**
-
-**Tier 1: Immediate (do now)**
-- Implementation: < 2 hours
-- Impact: High
-- Risk: Low
-- Examples: Automation scripts, templates
-
-**Tier 2: Short-term (do next)**
-- Implementation: 2-8 hours
-- Impact: High-Medium
-- Risk: Low-Medium
-- Examples: Documentation overhaul, helper tools
-
-**Tier 3: Future (backlog)**
-- Implementation: > 8 hours
-- Impact: Variable
-- Risk: Higher
-- Examples: Major refactoring, new systems
-
-**Output**: Prioritized list with implementation plan
-
-## Implementation Approach
-
-### For Each Selected Improvement:
-
-1. **Create** - Implement the improvement
-2. **Test** - Verify it works as intended
-3. **Document** - Add usage instructions
-4. **Integrate** - Add to workflow
-5. **Measure** - Track if it delivers expected value
-
-### Incremental delivery:
-- Start with Tier 1 (immediate wins)
-- Complete 1-3 improvements at a time
-- Validate before moving to next tier
-- Iterate based on feedback
-
-## Example: GRUB Review Workflow Improvements
-
-### Current State (before):
-- Manual documentation verification
-- No format enforcement (120 char width)
-- Creating review files from scratch each time
-- Inconsistent statistics across docs
-
-### Pain Points:
-1. High: Manual verification of doc consistency (every update)
-2. High: Line width violations found late (during review)
-3. Medium: Repetitive review file creation
-4. Medium: Inconsistent numbering across files
-
-### Improvements Identified:
-
-| Improvement | Frequency | Time Saved | Effort | ROI | Priority |
-|-------------|-----------|------------|--------|-----|----------|
-| verify_docs.sh | Every doc update (weekly) | 10 min → 30 sec | 2 hours | **High** | Tier 1 |
-| check_format.sh | Every review (daily) | 5 min → 10 sec | 1 hour | **High** | Tier 1 |
-| templates/ | Every new review (daily) | 10 min → 2 min | 1 hour | **High** | Tier 1 |
-| Auto-numbering | Every MR change (weekly) | 5 min → 0 | 4 hours | Medium | Tier 2 |
-| GitLab integration | Variable | Variable | 8+ hours | Medium | Tier 3 |
-
-### Top 3 Selected (Tier 1):
-1. **verify_docs.sh** - Automates documentation consistency checks
-2. **check_format.sh** - Enforces 120 character line width
-3. **templates/** - Standardizes review file creation
-
-### Results:
-- Time saved: ~20 minutes per review → ~2 hours/week
-- Errors prevented: Consistency mismatches, format violations
-- Cognitive load: Reduced (checklist automation)
-- Implementation time: ~4 hours total
-
-## Workflow Steps
-
-### Step 1: Assessment (15-30 min)
 ```
-1. Review current state
-   - What processes exist?
-   - What tools are in use?
-   - What documentation is available?
-
-2. Identify patterns
-   - What tasks repeat?
-   - Where is friction?
-   - What causes errors?
+For each step in the workflow:
+  - What is done (action)
+  - How long it takes (seconds/minutes)
+  - Whether it's manual or automated
+  - Whether errors occurred (count them)
+  - Whether it was repeated unnecessarily
 ```
 
-### Step 2: Pain Point Analysis (15-30 min)
-```
-1. List all pain points
-2. Rate severity (high/medium/low)
-3. Estimate frequency (daily/weekly/monthly)
-4. Identify quick wins (low-hanging fruit)
-```
+**Concrete techniques:**
+- **Time a task**: `time ./script.sh` or note wall-clock time for manual steps
+- **Count errors**: `grep -c "ERROR\|FAIL\|MISMATCH" output.log`
+- **Count repetitions**: How many times did you run the same command/edit?
+- **Measure file churn**: `git log --oneline --since="1 week" -- path/ | wc -l`
+- **Count manual steps**: How many things require human judgment vs. could be automated?
 
-### Step 3: Brainstorm Solutions (30-45 min)
-```
-1. For each high-severity pain point:
-   - What could automate this?
-   - What could prevent this?
-   - What could simplify this?
+#### 2. Build the Friction Table
 
-2. For each frequent pain point:
-   - What tool could help?
-   - What template could standardize?
-   - What documentation could clarify?
-```
-
-### Step 4: Benefit Assessment (30-45 min)
-```
-1. For each solution:
-   - Frequency of use
-   - Time saved per use
-   - Error prevention value
-   - Implementation effort
-   - Maintenance cost
-
-2. Calculate ROI score
-3. Rank by ROI
-```
-
-### Step 5: Selection & Planning (15-30 min)
-```
-1. Select top 3-5 Tier 1 improvements
-2. Create implementation plan
-3. Estimate timeline
-4. Define success criteria
-```
-
-### Step 6: Implementation (variable)
-```
-1. Implement one improvement at a time
-2. Test thoroughly
-3. Document usage
-4. Validate value
-5. Move to next
-```
-
-## Output Template
-
-Use this template when performing incremental improvement analysis:
+Record every point of friction with measured data:
 
 ```markdown
-# Incremental Improvement Analysis - [Project/Workflow Name]
-
-**Date**: YYYY-MM-DD
-**Analyst**: [Your name]
-
-## Current State
-
-[Brief description of current workflow/process]
-
-**Key components:**
-- Component 1
-- Component 2
-- Component 3
-
-**Current metrics:**
-- Metric 1: [value]
-- Metric 2: [value]
-
-## Pain Points
-
-| # | Pain Point | Severity | Frequency | Impact |
-|---|------------|----------|-----------|--------|
-| 1 | [Description] | High/Med/Low | Daily/Weekly/Monthly | [Impact description] |
-| 2 | [Description] | High/Med/Low | Daily/Weekly/Monthly | [Impact description] |
-
-## Proposed Improvements
-
-### High ROI (Tier 1)
-
-#### 1. [Improvement Name]
-- **Type**: Automation / Documentation / Tooling / Process
-- **Addresses**: Pain point #X
-- **Solution**: [Description]
-- **Frequency of use**: [Daily/Weekly/Monthly]
-- **Time saved**: [X minutes → Y seconds/minutes]
-- **Implementation effort**: [X hours]
-- **ROI Score**: High
-- **Success criteria**: [How to measure success]
-
-#### 2. [Improvement Name]
-[... repeat ...]
-
-### Medium ROI (Tier 2)
-[... repeat for Tier 2 improvements ...]
-
-### Future Considerations (Tier 3)
-[... list of backlog items ...]
-
-## Implementation Plan
-
-### Immediate (this week):
-1. [Improvement 1] - [X hours]
-2. [Improvement 2] - [Y hours]
-3. [Improvement 3] - [Z hours]
-
-**Total effort**: [N hours]
-**Expected value**: [Description of benefits]
-
-### Short-term (next 2-4 weeks):
-[... Tier 2 items if applicable ...]
-
-### Backlog:
-[... Tier 3 items for future consideration ...]
-
-## Success Metrics
-
-How we'll measure success:
-- [ ] Metric 1: [Target]
-- [ ] Metric 2: [Target]
-- [ ] Metric 3: [Target]
-
-## Notes
-
-[Additional observations, considerations, or dependencies]
+| # | Friction Point              | Frequency    | Time/Occurrence | Errors/Week | Manual? |
+|---|-----------------------------|------------- |-----------------|-------------|---------|
+| 1 | Verify doc consistency      | 5x/week      | 10 min          | 2 mismatches| Yes     |
+| 2 | Format review to 120 chars  | 10x/week     | 5 min           | 3 violations| Yes     |
+| 3 | Create review file skeleton | 10x/week     | 8 min           | 0           | Yes     |
+| 4 | Check commit count matches  | 10x/week     | 3 min           | 1 miss/week | Yes     |
 ```
 
-## Red Flags (When NOT to Optimize)
+**Rules**:
+- Use actual numbers, not "often" or "sometimes"
+- Frequency must be per-day or per-week, not vague
+- Time must be measured or estimated in minutes, not "a while"
+- Error count must be from real observation, not hypothetical
 
-**Avoid premature optimization:**
-- ✗ Process used only once or twice
-- ✗ Already efficient (< 1 minute to complete)
-- ✗ High risk of breaking existing workflow
-- ✗ Requires significant ongoing maintenance
-- ✗ Benefits unclear or speculative
+### Phase 2: Score and Select
 
-**Warning signs:**
-- "This might be useful someday"
-- "It would be cool if..."
-- "We could build a system that..."
-- No clear ROI calculation
-- Implementation effort > expected lifetime savings
+**Goal**: Pick the single best improvement to implement.
 
-## Best Practices
+#### 1. Calculate Impact Score
 
-1. **Start small** - Implement 1-3 improvements, not 10
-2. **Measure impact** - Track actual time/error savings
-3. **Iterate** - Use feedback to refine
-4. **Document** - Make improvements discoverable
-5. **Share knowledge** - Help others benefit
-6. **Review regularly** - Re-evaluate every 3-6 months
+For each friction point, calculate:
+
+```
+Weekly time cost  = frequency_per_week x minutes_per_occurrence
+Weekly error cost = errors_per_week x estimated_rework_minutes_per_error
+Total weekly cost = weekly_time_cost + weekly_error_cost
+```
+
+Example from the friction table above:
+
+```
+#1: Doc consistency    = 5 x 10 + 2 x 15  = 80 min/week
+#2: Format to 120 char = 10 x 5 + 3 x 5   = 65 min/week
+#3: Review skeleton    = 10 x 8 + 0        = 80 min/week
+#4: Commit count check = 10 x 3 + 1 x 20   = 50 min/week
+```
+
+#### 2. Estimate Implementation Effort
+
+For each, estimate:
+- **Hours to implement**: Be honest. Include testing and documentation.
+- **Ongoing maintenance**: Will it need updates? How often?
+- **Risk**: Could it break something? (low/medium/high)
+
+```
+#1: 2 hours, low maintenance, low risk
+#2: 1 hour, no maintenance, low risk
+#3: 1.5 hours, low maintenance, low risk
+#4: 1 hour, no maintenance, low risk
+```
+
+#### 3. Calculate ROI and Select
+
+```
+ROI = (weekly_cost_minutes x 52) / (implementation_hours x 60)
+    = annual_minutes_saved / implementation_minutes
+```
+
+```
+#1: (80 x 52) / (2 x 60) = 4160 / 120 = 34.7x ROI
+#2: (65 x 52) / (1 x 60) = 3380 / 60  = 56.3x ROI  ← highest
+#3: (80 x 52) / (1.5 x 60) = 4160 / 90 = 46.2x ROI
+#4: (50 x 52) / (1 x 60) = 2600 / 60  = 43.3x ROI
+```
+
+**Select the highest ROI item** that also has low risk. If the top item has medium/high risk,
+consider the next one down.
+
+**Winner**: #2 (format checking) - highest ROI at 56.3x, low risk, 1 hour to implement.
+
+#### 4. Define Success Criteria
+
+Before implementing, write down exactly what "success" looks like:
+
+```markdown
+## Improvement: Automated format checking (check_format.sh)
+
+**Baseline (measured)**:
+- Time per format check: 5 minutes (manual scan + fix)
+- Frequency: 10x/week
+- Errors caught late: 3 violations/week found during review
+
+**Target (after)**:
+- Time per format check: < 30 seconds (run script)
+- Frequency: 10x/week (unchanged)
+- Errors caught late: 0 (caught at creation time)
+
+**Success metric**: Weekly time on format checking drops from 50 min to < 5 min
+**Verification method**: Time myself for 1 week after implementation
+```
+
+### Phase 3: Implement
+
+**Goal**: Build the improvement and integrate it into the workflow.
+
+#### 1. Implement (time-boxed)
+
+- Set a time box equal to your estimated implementation hours
+- Build the minimum viable version that addresses the friction
+- Don't over-engineer: the goal is the measured improvement, not a perfect tool
+
+#### 2. Test Against Real Data
+
+- Run on actual workflow data, not contrived examples
+- Verify output matches what manual process would produce
+- Check edge cases from your error observations in Phase 1
+
+#### 3. Integrate Into Workflow
+
+- Replace the manual step with the automated/improved one
+- Document how to use it (one paragraph or a comment in the script)
+- Make it the default path (not an optional extra step)
+
+### Phase 4: Measure and Prove
+
+**Goal**: Verify the improvement delivered measurable value.
+
+This phase is not optional. Without it, you have no evidence the change was worth making.
+
+#### 1. Run the Improved Workflow
+
+Use the improvement for at least 5 occurrences (ideally a full week) and record the same metrics
+from Phase 1:
+
+```markdown
+| Metric                  | Before (measured) | After (measured) | Change        |
+|-------------------------|-------------------|------------------|---------------|
+| Time per occurrence     | 5 min             | 20 sec           | -93%          |
+| Weekly time spent       | 50 min            | 3.3 min          | -93%          |
+| Errors caught late      | 3/week            | 0/week           | -100%         |
+| Annual time saved       |                   |                  | ~40 hours     |
+| Implementation cost     |                   |                  | 1 hour        |
+| Actual ROI              |                   |                  | 40x           |
+```
+
+#### 2. Assess Result
+
+Compare actual ROI to predicted ROI:
+
+- **Actual > Predicted**: Improvement delivered more than expected. Good.
+- **Actual ~ Predicted**: Improvement delivered as expected. Good.
+- **Actual < Predicted but positive**: Still a net win, but estimates were optimistic.
+- **Actual < 1x**: Improvement cost more than it saves. Investigate why. Consider reverting.
+
+#### 3. Record the Improvement
+
+Document the completed improvement for future reference:
+
+```markdown
+## Completed: check_format.sh (2026-04-13)
+- **Problem**: Manual format checking took 5 min/review, 3 violations/week caught late
+- **Solution**: Shell script checking 120-char line width
+- **Result**: 5 min → 20 sec per check, 0 late violations
+- **Actual ROI**: 40x (40 hours saved annually, 1 hour invested)
+```
+
+### Phase 5: Repeat
+
+After completing one improvement cycle, return to Phase 1 and re-observe. The workflow has changed --
+previous friction points may have shifted. Run the full cycle again on the next highest-impact item.
+
+**Cadence**: One improvement per week or per project phase is sustainable. More than that risks
+incomplete implementation and unmeasured results.
+
+## Scoring Reference
+
+### Quick ROI Calculation
+
+```
+ROI = (frequency_per_week x minutes_saved x 52) / (implementation_hours x 60)
+```
+
+| ROI    | Interpretation                                              |
+|--------|-------------------------------------------------------------|
+| > 50x  | Exceptional. Implement immediately.                         |
+| 10-50x | Strong. Implement when time available.                      |
+| 3-10x  | Moderate. Implement if low risk and low effort.             |
+| 1-3x   | Marginal. Only implement if it also reduces errors.         |
+| < 1x   | Negative ROI. Don't implement unless non-time benefits.     |
+
+### What Counts as Measurable
+
+Good metrics (use these):
+- **Time**: seconds, minutes per task (measurable with `time` or stopwatch)
+- **Error count**: mismatches, violations, failures per week
+- **Repetition count**: times a command/step is executed per task
+- **File churn**: edits to same file, rework cycles
+
+Bad metrics (avoid these):
+- "Feels faster" -- measure it
+- "Reduces cognitive load" -- proxy it with error count or repetition count
+- "Improves quality" -- what specific quality metric changes?
+- "More consistent" -- count the inconsistencies before and after
+
+## Example: GRUB Review Workflow
+
+### Phase 1: Observation
+
+Observed one week of review workflow:
+
+| # | Friction Point          | Freq/week | Min/each | Errors/week | Manual? |
+|---|-------------------------|-----------|----------|-------------|---------|
+| 1 | Doc consistency check   | 5         | 10       | 2           | Yes     |
+| 2 | Format to 120 chars     | 10        | 5        | 3           | Yes     |
+| 3 | Review file creation    | 10        | 8        | 0           | Yes     |
+| 4 | Statistics sync         | 3         | 5        | 1           | Yes     |
+
+### Phase 2: Scoring
+
+```
+#1: Weekly cost = 5x10 + 2x15 = 80 min.  Effort = 2h.  ROI = 4160/120 = 34.7x
+#2: Weekly cost = 10x5 + 3x5  = 65 min.  Effort = 1h.  ROI = 3380/60  = 56.3x ← selected
+#3: Weekly cost = 10x8         = 80 min.  Effort = 1.5h. ROI = 4160/90 = 46.2x
+#4: Weekly cost = 3x5 + 1x10  = 25 min.  Effort = 1h.  ROI = 1300/60  = 21.7x
+```
+
+Selected: #2 (format checking). Highest ROI, lowest effort, low risk.
+
+### Phase 3: Implementation
+
+Created `check_format.sh` -- scans all review files for lines > 120 chars, reports violations.
+1 hour to implement and test.
+
+### Phase 4: Measurement
+
+After 1 week of use:
+
+| Metric              | Before     | After      | Change  |
+|----------------------|-----------|------------|---------|
+| Time per check       | 5 min     | 10 sec     | -97%    |
+| Weekly time          | 50 min    | 1.7 min    | -97%    |
+| Late violations      | 3/week    | 0/week     | -100%   |
+| Actual annual saving | --        | 42 hours   | --      |
+| Actual ROI           | --        | 42x        | --      |
+
+### Phase 5: Next Cycle
+
+Re-observed workflow. #3 (review file creation) now the highest remaining friction.
+Started next cycle.
+
+## Red Flags
+
+**Don't use this skill when:**
+- The process is used less than 3x/week (not enough frequency to justify)
+- You can't measure the current state (no baseline = no proof)
+- The "improvement" is speculative ("this might be useful someday")
+- Implementation effort exceeds 8 hours (that's a project, not an increment)
+- You're optimizing something already under 1 minute
+
+**Warning signs of bad improvements:**
+- Can't write a concrete success metric with numbers
+- ROI calculation comes out below 3x
+- "Feels like it should be better" without friction data
+- Improvement addresses a problem you've experienced once
 
 ## Checklist
 
-Use this checklist when applying the skill:
+Use this checklist for each improvement cycle:
 
-- [ ] Current state documented
-- [ ] Pain points identified and rated
-- [ ] Solutions brainstormed (4+ ideas per pain point)
-- [ ] Benefits assessed with frequency + time savings
-- [ ] Effort estimated for each improvement
-- [ ] ROI calculated and ranked
-- [ ] Top 3-5 improvements selected
-- [ ] Implementation plan created
-- [ ] Success criteria defined
-- [ ] First improvement implemented and tested
+### Observe
+- [ ] Ran through or reviewed actual workflow execution
+- [ ] Built friction table with measured time, frequency, and error counts
+- [ ] All numbers are from observation, not guesses
+
+### Score
+- [ ] Calculated weekly cost in minutes for each friction point
+- [ ] Estimated implementation effort honestly (including testing)
+- [ ] Calculated ROI for each candidate
+- [ ] Selected highest ROI item with acceptable risk
+- [ ] Wrote success criteria with baseline numbers and targets
+
+### Implement
+- [ ] Built minimum viable improvement within time box
+- [ ] Tested against real workflow data
+- [ ] Integrated into workflow as default path
+
+### Measure
+- [ ] Used improvement for at least 5 occurrences
+- [ ] Recorded same metrics as baseline
+- [ ] Calculated actual ROI
+- [ ] Documented before/after comparison
+- [ ] Recorded completed improvement for reference
 
 ## Version History
 
 - **1.0.0** (2026-04-13): Initial version based on GRUB review workflow optimization
+- **2.0.0** (2026-04-21): Complete rewrite. Replaced generic framework with measurement-driven
+  workflow. Added concrete scoring formula, mandatory baseline/after measurement, single-item
+  focus, and real ROI calculation. Removed generic brainstorming categories, placeholder output
+  template, and duplicate workflow steps.
 
 ## See Also
 
-- **refresh-docs skill** - For documentation maintenance workflows
-- **review skill** - For code review processes
-- General project management and process improvement resources
+- **refresh-docs** - For documentation maintenance workflows
+- **review** - For code review processes
+- **create-skill** - For capturing improvements as reusable skills
 
 ---
 
-**Key Principle**: The best improvement is one that's **actually implemented** and **delivering value**, not the most sophisticated one that stays on the backlog forever.
+**Key Principle**: An improvement you can't measure is just a change. Measure before, implement,
+measure after, prove value.
