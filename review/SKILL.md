@@ -481,7 +481,7 @@ reasoning_files=$(ls reviews/*_reasoning.txt | wc -l)
 # Verify: reasoning_files should equal reviews_with_issues
 ```
 
-#### 2. Format Verification
+#### 4. Format Verification
 
 **Check line lengths:**
 ```bash
