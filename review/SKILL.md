@@ -2,782 +2,539 @@
 name: Code Review
 description: Complete workflow for reviewing patches/commits, documenting findings, and formatting results
 author: pvalena
-version: 2.1.0
+version: 3.0.0
 tags: [code-review, documentation, formatting, security, quality, verification, false-positives]
 ---
 
 # Code Review Skill
 
-**Purpose**: Complete workflow for reviewing code changes (patches, commits, merge requests), documenting
-findings with technical precision, and ensuring proper formatting of all review documentation.
+**Purpose**: Complete workflow for reviewing code changes (patches, commits, merge requests),
+documenting findings with technical precision, verifying correctness, drafting fixes, and producing
+deep technical reasoning.
 
 ## When to Use This Skill
 
-Use this skill when:
 - Reviewing patches, commits, or merge requests for code quality and correctness
 - Need to document code review findings in a structured format
-- Creating both detailed review files and concise reasoning summaries
-- Ensuring review documentation meets formatting standards
+- Creating review files, reasoning files, and draft fix patches
+- Verifying existing reviews for false positives or missed issues
 
 ## Core Principles
 
-**Quality over quantity**: A single false positive destroys credibility. Every reported bug MUST be verified
-by reading the actual code.
+**Zero false positives**: A single false positive destroys credibility. Every reported bug MUST be
+verified by reading the actual source code, not just diffs.
 
-**Completeness is mandatory**: Missing commits means missing bugs. Always verify the commit count matches
+**Completeness is mandatory**: Missing commits means missing bugs. Always verify commit count matches
 what was reviewed.
 
-**Evidence-based reviews**: Never report a bug you haven't seen in the actual code. Diffs can be misleading.
-Always read the full function context.
+**Evidence-based reviews**: Never report a bug you haven't seen in the actual code. Diffs can be
+misleading -- always read the full function context using `git show BRANCH:path/to/file`.
 
-**Zero tolerance for false positives**: If you find a false positive in your review:
-1. Remove it immediately
-2. Re-verify all other bugs in that review
-3. Update both review and reasoning files
+**Draft fixes where straightforward**: When a fix is obvious and localized, include a diff patch in
+the review. When it's not, explain why -- that's equally valuable.
+
+**Deep reasoning**: Reasoning files should walk through the discovery and analysis step by step, so
+a reader can independently verify the conclusion.
+
+---
 
 ## Complete Workflow
 
-### Phase 0: Perform Code Review
+### Phase 1: Perform Code Review
 
-**IMPORTANT**: Before documenting any bug, you MUST verify it by reading the actual code. Diffs can be
-misleading. A false positive is worse than a missed bug.
+**Goal**: Examine all commits, read actual source code, identify real bugs.
 
-#### 1. Examine the Changes
+#### 1. List and Count Commits
 
-**Checkout the code:**
 ```bash
-# For git branches
-git checkout BRANCH_NAME
-
-# For specific commits
-git show COMMIT_HASH
-
-# For patches
-git diff BASE_BRANCH...BRANCH_NAME
+git log --oneline origin/master..BRANCH
+git log --oneline origin/master..BRANCH | wc -l
 ```
 
-**Understand context:**
-- Read commit messages for intent
-- Identify files modified and scope of changes
-- Note number of commits if multiple
-- Check if part of a series (depends on other MRs/patches)
+Record the exact count -- you must review every commit and list each one in the review file.
 
-#### 2. Review Checklist
+#### 2. Read the Full Diff
 
-**Critical Issues to Find:**
-- **Memory management**: Leaks, double-free, use-after-free, dangling pointers
-- **NULL pointer dereferences**: Missing NULL checks, dereferencing before validation
-- **Resource leaks**: Files, file descriptors, network connections, DMA allocations
-- **Buffer overflows**: Array bounds, string operations, integer overflows
-- **Uninitialized variables**: Using variables before assignment
-- **Concurrency issues**: Race conditions, deadlocks (if applicable)
-- **Logic errors**: Off-by-one, incorrect conditions, wrong operators
-- **Type mismatches**: Wrong enum types, incorrect casts
-- **Error handling**: Unchecked return values, missing error paths
-- **Compilation errors**: Missing fields, undefined symbols, type errors
+```bash
+git diff origin/master..BRANCH
+```
 
-**Code Quality Issues:**
-- Inconsistent style (only if severe)
-- Missing validation of inputs
-- Incomplete cleanup in error paths
-- Platform-specific code without guards
-- Misleading comments or variable names
+Identify files changed, scope of modifications, and areas requiring deeper inspection.
 
-**What NOT to Focus On:**
-- Minor style preferences (unless project has strict guidelines)
-- Optimization opportunities (unless performance-critical)
-- Alternative implementations (unless current is clearly wrong)
+#### 3. Read Actual Source Code
+
+**This is the critical step.** For every file changed, read the actual source at the branch:
+
+```bash
+git show BRANCH:path/to/file.c
+git show BRANCH:path/to/file.c | sed -n '80,120p'   # specific lines
+```
+
+Do NOT rely on diffs alone. Diffs hide context: cleanup code after the hunk, NULL checks
+earlier in the function, related code in the same file.
+
+#### 4. What to Look For
+
+**Critical issues:**
+- Memory management: leaks, double-free, use-after-free, dangling pointers
+- NULL pointer dereferences: missing NULL checks before use
+- Resource leaks: FILE streams, file descriptors, allocations not freed on all paths
+- Buffer overflows: array bounds, string operations, integer overflow in size calculations
+- Logic errors: off-by-one, incorrect conditions, wrong operators, dead code
+- Error handling: unchecked return values, conflated error/success returns
+- Type mismatches: byte count vs element count, wrong enum, incorrect casts
+- Documentation/code mismatches: docs say one thing, code does another
+
+**What NOT to report:**
+- Style preferences (naming, formatting, comment style)
+- Optimization suggestions (unless correctness is affected)
+- Alternative implementations (unless current is demonstrably wrong)
 - Theoretical issues without concrete impact
 
-#### 3. Analyze Specific Code Sections
+#### 5. Create Review File
 
-**Read the actual code:**
-- Don't just read diffs, examine full context
-- Check how functions are called and what they expect
-- Trace data flow for suspicious operations
-- Look at related code in same file
-- Check if changes conflict with other patches
+**File naming**: `reviews/IDENTIFIER.md` (e.g., `pr89.md`, `2025-05-0103.md`)
 
-**For each issue found, document:**
-- Exact file path and line number(s)
-- Function/context where issue occurs
-- What is wrong (technical description)
-- Why it's wrong (consequences, impact)
-- Type of issue (compilation error, crash, leak, logic bug)
+**Structure:**
 
-#### 4. Create Review File
-
-**File naming:** `reviews/BRANCH_OR_COMMIT_ID.md`
-
-**Review file structure:**
 ```markdown
 # AI Review: MR !XX - Brief Title
 
-[One paragraph summary: what the change does, scope, testing mentioned]
+N commit(s) [brief description of what the change does].
 
-[For each issue:]
-- **Issue Type: Brief description** (file.c:line): Technical explanation.
-  Additional details if needed. Impact/consequences.
+**Commits:**
+1. **hash** - Commit message
+2. **hash** - Commit message
 
-[If no issues:]
-The [approach/fix/implementation] is [correct/sound]:
+## Issues Found
 
-- [Validation point 1]
-- [Validation point 2]
-- [Why it works]
+### 1. Short issue title
+
+**File:** `path/to/file.c`
+**Location:** `function_name()`, lines ~N-M
+
+[Technical description of the issue. What the code does, what's wrong with it,
+what the consequence is. Include a code snippet if it clarifies.]
+
+### 2. Next issue...
+
+## Review Result
+
+[1-2 sentence summary: how many issues, which are most significant.]
+
+For more details: [URL to the reasoning file in the project's repository]
+```
+
+The "For more details" link should point to the reasoning file in the project's hosted
+repository (e.g., GitHub, GitLab). Derive the URL from the project's remote:
+
+```bash
+# Get the repository URL
+remote_url=$(git remote get-url origin | sed 's/\.git$//' | sed 's|git@github.com:|https://github.com/|')
+# For GitHub: ${remote_url}/blob/main/reviews/IDENTIFIER_reasoning.txt
+# For GitLab: ${remote_url}/-/blob/main/reviews/IDENTIFIER_reasoning.txt
+```
+
+Only include this link when issues were found (i.e., when a reasoning file exists).
+
+**If no issues found**, replace the Issues Found section with:
+
+```markdown
+## Issues Found
 
 No issues found.
 
-[If needs specialized review:]
-**Note**: This requires [domain] expertise to properly review. The implementation involves
-[complex topic] beyond general code review scope. Recommend review by [specialized team].
+## Review Result
+
+[Brief explanation of why the code is correct, what was validated.]
 ```
 
-**Example: Review with issues**
-```markdown
-# AI Review: MR !42 - Add xHCI support
+#### 6. Create Reasoning File (Only If Issues Found)
 
-Adds USB 3.0 (xHCI) controller driver. 2963 lines based on SeaBIOS implementation, tested on QEMU and
-MSC C6B-CFLR boards with USB mass storage, DVD burner, and hubs.
+**File naming**: `reviews/IDENTIFIER_reasoning.txt`
 
-- **Potential double-free** (grub-core/bus/usb/xhci.c:2099,2196): `grub_xhci_check_transfer()` frees
-  `transfer->controller_data` (line 2099) without setting it to NULL. If `grub_xhci_cancel_transfer()`
-  is subsequently called on the same transfer, it retrieves the dangling pointer (line 2142-2143) and
-  frees it again (line 2196), causing double-free. Should set `transfer->controller_data = NULL;` after
-  line 2099.
+**Do NOT create** reasoning files for clean reviews.
 
-**Note**: At 2963 lines, exhaustive review is impractical. Focused on resource management and
-integration points.
+**Structure** -- for each issue, include four sections:
+
+```
+[Severity]: [Issue title] at [file:location].
+
+Discovery: [How the issue was found -- what drew attention to it.]
+
+Analysis: [Technical breakdown. Trace through the code. Show what
+values variables hold, what conditions are true/false, what code paths
+execute. Reference specific line numbers.]
+
+Step-by-step [for a concrete scenario]:
+  1. [First thing that happens]
+  2. [Next thing]
+  ...
+  N. [Final consequence]
+
+Consequence: [What goes wrong in practice. Severity justification.]
+
+---
+
+[Next issue]
 ```
 
-**Example: Review without issues**
-```markdown
-# AI Review: MR !21 - Handle root inode read failure
+**Severity levels:**
+- **Critical**: Crashes, memory corruption, security vulnerabilities, data loss
+- **Minor**: Dead code, misleading names, resource leaks in short-lived processes
+- **Note**: Observations, limitations, areas needing specialized review
+- **Concern**: Potential issues requiring deeper analysis or domain expertise
 
-The fix is correct:
+---
 
-- Adds early return when `addr` parameter is 0 (null/invalid MMIO address)
-- Prevents generation of invalid 'mmio,0' port names that would halt the system
-- Returns NULL appropriately to signal error to caller
+### Phase 2: Verify Findings
 
-The logic prevents the crash described in the commit message. No issues found.
-```
+**Goal**: Re-read actual source code to confirm every reported issue is real, and check
+for issues that were missed.
 
-#### 5. Common Bug Patterns
+This is a separate pass from Phase 1. After writing the initial review, go back and
+independently verify each finding.
 
-**Double-free:**
-```
-Function A frees memory and doesn't NULL the pointer.
-Function B later frees the same pointer.
-Look for: free without NULL assignment, multiple code paths calling free.
-```
+#### For Each Reported Issue
 
-**Use-after-free:**
-```
-Memory freed but pointer still used afterwards.
-Look for: operations after free, pointer not checked for validity.
-```
+1. Read the actual source file at the relevant lines:
+   ```bash
+   git show BRANCH:path/to/file.c | sed -n 'START,ENDp'
+   ```
+2. Confirm the bug exists exactly as described
+3. Check for context that might invalidate the finding:
+   - Is there a NULL check earlier in the function?
+   - Is the pointer set to NULL after the free?
+   - Does the API guarantee something that makes this safe?
+   - Is there cleanup code outside the visible diff?
 
-**NULL dereference:**
-```
-Pointer dereferenced without NULL check.
-Look for: function returning NULL, immediate dereference of return value.
-```
+#### For Clean Reviews
 
-**Resource leak:**
-```
-Resource allocated but not freed on all paths (especially error paths).
-Look for: malloc/open/alloc without matching free/close, early returns skipping cleanup.
-```
+Re-read the diff and source code looking for anything missed:
+- Trace all error paths for resource leaks
+- Check all pointer dereferences for NULL safety
+- Verify return value semantics match caller expectations
+- Look for documentation/code mismatches
 
-**Uninitialized variable:**
-```
-Variable declared but used before assignment.
-Look for: variable declared, conditional assignment, unconditional use.
-```
-
-**Type confusion:**
-```
-Using wrong enum type, incorrect struct member access.
-Look for: type casts, enum comparisons, struct field access.
-```
-
-**Missing error check:**
-```
-Function call that can fail, return value not checked.
-Look for: allocation functions, system calls, operations that can fail.
-```
-
-### Phase 1: Generate Reasoning Files
-
-For each review **with issues found**, create a `*_reasoning.txt` file.
-
-**File naming:** `reviews/BRANCH_OR_COMMIT_ID_reasoning.txt`
-
-**Content Requirements:**
-- **Brief and focused** - No unnecessary prose
-- **Include specific locations** - File paths, line numbers, function names
-- **State the technical issue** - What's wrong and why it matters
-- **Use precise terminology** - Memory leak, double-free, NULL dereference, etc.
-- **No recommendations** - Just state what the problem is
-- **No "No issues found" files** - Only create for reviews with issues
-
-**Format Template:**
-```
-[Severity]: [Issue description at location]. [Technical explanation].
-[Consequences].
-
-[Next issue if multiple]
-```
-
-**Severity Levels:**
-- **Critical**: Compilation errors, crashes, memory corruption, security vulnerabilities
-- **Minor**: Style issues, misleading names, inefficiencies
-- **Note**: Observations, limitations, context for future reviewers
-- **Concern**: Potential issues requiring deeper analysis or testing
-
-**Example:**
-```
-Critical: Double-free at grub-core/bus/usb/xhci.c:2099,2196. grub_xhci_check_transfer() frees
-transfer->controller_data (line 2099) without setting to NULL. If grub_xhci_cancel_transfer()
-subsequently called on same transfer, retrieves dangling pointer (lines 2142-2143) and frees again
-(line 2196). Should set transfer->controller_data = NULL after line 2099.
-
-Minor: ext2 listed in journaled filesystems (util/grub-install.c:2037) but ext2 has no journal. Name
-is misleading though it functionally works since ext3/4 report as "ext2" in GRUB.
-```
-
-**Guidelines:**
-- Start with severity: Critical, Minor, Note, Concern
-- Include file path and line number in first sentence
-- Explain the technical flaw, not the fix
-- State impact/consequences
-- Keep each paragraph focused on one issue
-- Separate multiple issues with blank lines
-
-### Phase 2: Format Documentation
-
-**Width Constraint: 120 characters**
-
-All review files must comply with 120 character line width for readability in terminals and diffs.
-
-#### 1. Format Review Files (`*.md`)
-
-**Check for long lines:**
-```bash
-awk 'length > 120 {print NR ": " substr($0, 1, 80) "..."}' reviews/FILE.md
-```
-
-**Wrap long lines while preserving:**
-- Code blocks and indentation
-- Bullet point structure
-- Markdown formatting
-- Technical terms (don't break function names mid-word)
-
-**Break lines at natural points:**
-- After commas, periods
-- Before conjunctions (and, but, or)
-- Before opening parentheses
-- After closing parentheses
-
-**Line Breaking Example:**
-```markdown
-Before (>120 chars):
-- **NULL pointer dereference** (grub-core/lib/cmdline.c:53): `grub_loader_cmdline_size()` calls
-  `check_arg(argv[i], 0)` passing NULL as second parameter.
-
-After (<120 chars):
-- **NULL pointer dereference** (grub-core/lib/cmdline.c:53): `grub_loader_cmdline_size()` calls
-  `check_arg(argv[i], 0)` passing NULL as second parameter.
-```
-
-#### 2. Format Reasoning Files (`*_reasoning.txt`)
-
-Same 120 character limit applies.
-
-**Maintain:**
-- Paragraph structure
-- Technical terminology intact
-- File paths readable
-- Sentence flow
-
-**Example:**
-```
-Before (>120 chars):
-Critical: Enum grub_luks2_kdf_type in include/grub/luks2.h:26-30 missing LUKS2_KDF_TYPE_ARGON2ID value. Code still references this value at luks2.c:107,506,510, causing compilation failure.
-
-After (<120 chars):
-Critical: Enum grub_luks2_kdf_type in include/grub/luks2.h:26-30 missing LUKS2_KDF_TYPE_ARGON2ID value.
-Code still references this value at luks2.c:107,506,510, causing compilation failure.
-```
-
-### Phase 3: Verification & Quality Assurance
-
-**Critical**: Reviews must be accurate, complete, and free of false positives. A single false positive
-undermines credibility. Always verify findings by reading actual code.
-
-#### 1. Review Accuracy Verification (Avoid False Positives)
-
-**Problem**: Reviews may report bugs that don't actually exist due to:
-- Misunderstanding protocol semantics
-- Missing context (pointer set to NULL later in function)
-- Incorrect assumptions about data flow
-- Not seeing cleanup code outside the diff
-
-**Solution**: Verify EVERY reported bug by reading the actual code.
-
-**Verification process:**
-
-```bash
-# For each bug reported in reviews/*.md, verify it exists
-
-# Method 1: Read the specific function
-git show HEAD:path/to/file.c | grep -A 30 -B 10 "function_name"
-
-# Method 2: Check specific line numbers
-git show HEAD:path/to/file.c | sed -n '2090,2200p'
-
-# Method 3: Search for related cleanup code
-git show HEAD:path/to/file.c | grep -E "(= NULL|grub_free|cleanup)"
-```
-
-**Common false positive patterns:**
+#### Common False Positive Patterns
 
 **Double-free false positive:**
 ```c
-grub_free(ptr);         // Line 100 - Review claims this causes double-free
+grub_free(ptr);         // Review claims double-free
 // ...
-ptr = NULL;             // Line 105 - Review MISSED this! Not a bug.
+ptr = NULL;             // Review MISSED this -- not a bug
 // ...
-grub_free(ptr);         // Line 200 - Safe because ptr is NULL
+grub_free(ptr);         // Safe: ptr is NULL
 ```
 
 **NULL dereference false positive:**
 ```c
-if (param == NULL)      // Review missed this check at top of function
+if (param == NULL)      // Review missed this guard at function entry
   return;
 // ...
-*param = value;         // Review claims NULL deref - FALSE! Already checked.
+*param = value;         // Review claims NULL deref -- already checked above
 ```
 
 **Resource leak false positive:**
 ```c
 fd = open(...);
 if (!fd) {
-  cleanup_other();
   return;               // Review claims fd leak
-}
-// Review missed: fd is 0 (invalid) when this returns, not a real fd
+}                       // But fd is 0 (invalid), not a real fd
 ```
 
-**Verification checklist for each reported bug:**
-- [ ] Can you see the exact bug in the actual code?
-- [ ] Is there cleanup code outside the visible diff?
-- [ ] Does the pointer get set to NULL before the second free?
-- [ ] Is there an early NULL check you missed?
-- [ ] Does the protocol/API guarantee something you didn't know?
-- [ ] Is the scenario actually reachable in practice?
+#### If You Find a False Positive
 
-**Example: Verifying MR !42 double-free**
+1. Remove it from the review file
+2. Update the reasoning file
+3. Re-verify all other findings in the same review (pattern of errors)
 
-```bash
-# Review claims: double-free in xhci.c:2099,2196
-# Verify by reading actual code
+#### If You Find a Missed Issue
 
-git show HEAD:grub-core/bus/usb/xhci.c | sed -n '2090,2105p'
-# Line 2099: grub_free(cdata);
-# Line 2100-2105: NO "= NULL" assignment
-# ✓ First part confirmed
+1. Add it to the review file
+2. Add it to the reasoning file
+3. Update the Review Result summary
 
-git show HEAD:grub-core/bus/usb/xhci.c | sed -n '2140,2200p'
-# Line 2142-2143: cdata = transfer->controller_data;
-# Line 2196: grub_free(cdata);
-# ✓ Second free confirmed
-# ✓ BUG IS REAL - not a false positive
+---
+
+### Phase 3: Draft Fixes
+
+**Goal**: For each confirmed issue, either provide a fix patch or explain why a fix
+isn't straightforward.
+
+#### When to Provide a Draft Fix
+
+Provide a diff patch when the fix is:
+- Localized (changes 1-10 lines)
+- Obvious (the correct behavior is clear)
+- Self-contained (doesn't require API redesign or broader changes)
+
+Examples of straightforward fixes:
+- Swapping case branch order to fix dead code
+- Adding a missing `fclose(fp)` before return
+- Removing a dead `free(NULL)` call
+- Changing space-separated to comma-separated output
+
+#### When NOT to Provide a Draft Fix
+
+Explain why instead, when:
+- The author's intent is ambiguous (docs say X, code does Y -- which is right?)
+- The fix requires API redesign (e.g., changing return value semantics)
+- Multiple valid approaches exist with different trade-offs
+- The fix affects callers that need coordinated changes
+
+#### Format in Review File
+
+Add the fix directly after the issue description:
+
+**For straightforward fixes:**
+````markdown
+**Draft fix** -- [brief description of what the fix does]:
+
+```diff
+--- a/path/to/file.c
++++ b/path/to/file.c
+@@ -LINE,COUNT +LINE,COUNT @@
+  context line
+-old line
++new line
+  context line
+```
+````
+
+**For non-straightforward fixes:**
+```markdown
+Not a straightforward fix. [Explanation of why: what's ambiguous, what trade-offs
+exist, what the author needs to decide. Be specific about the competing options
+and their implications.]
 ```
 
-**If you find a false positive:**
-1. Remove it from the review file immediately
-2. Update reasoning file if it exists
-3. Re-verify other bugs in the same review (pattern of errors)
+---
 
-#### 2. Completeness Verification (All Commits Reviewed)
+### Phase 4: Deep Reasoning
 
-**Problem**: Reviews may miss commits, leaving bugs undetected.
+**Goal**: Ensure reasoning files contain enough depth for independent verification.
 
-**Solution**: Always verify the commit count matches what was actually reviewed.
+A good reasoning file lets someone who has never seen the code follow your analysis
+and arrive at the same conclusion. It should read like a proof, not an assertion.
 
-**For branch-based reviews:**
+#### Required Depth
 
-```bash
-# If you have a base commit reference
-git checkout BRANCH_NAME
-git log --oneline BASE_COMMIT..HEAD | wc -l
-# Compare count with review file
+For each issue, the reasoning file must include:
 
-# List all commits to verify each is documented
-git log --oneline BASE_COMMIT..HEAD
+1. **Discovery**: What specific code or pattern drew your attention. Which file, which
+   line, what looked wrong at first glance.
+
+2. **Analysis**: Technical breakdown with specific line numbers. Trace through the code
+   showing what values variables hold at each step. Reference the actual code, not
+   hypotheticals.
+
+3. **Step-by-step scenario**: A concrete execution trace showing how the bug manifests.
+   Number each step. Include the state of relevant variables at each point.
+
+4. **Consequence**: What actually goes wrong. Be specific -- "crashes" is insufficient;
+   "efibootmgr pipe failure returns errno=24 to caller, caller treats non-zero as
+   'already registered', returns 0 (success), boot entry is never created" is
+   sufficient.
+
+#### Example: Thorough Reasoning Entry
+
+```
+Minor: Missing fclose(fp) in grub_install_efi_is_registered() at
+grub-core/osdep/unix/platform.c, before `return rc` on line 129.
+
+Discovery: Reading the function's resource management, the FILE stream is
+opened at line 97:
+  FILE *fp = fdopen(fd, "r");
+Then used in the while loop (lines 103-127) to read efibootmgr output via
+getline(). After the loop, line 128-129:
+  free(line);
+  return rc;
+The function frees the line buffer but never calls fclose(fp).
+
+Analysis: Tracing resource lifecycle:
+  1. grub_util_exec_pipe() creates a pipe and returns fd (line 85)
+  2. fdopen(fd, "r") wraps fd into FILE* fp (line 97)
+  3. getline() reads from fp in the loop (line 108)
+  4. free(line) releases the line buffer (line 128)
+  5. return rc -- fp is NOT closed (line 129)
+
+After fdopen() succeeds, the fd is owned by the FILE stream. Calling
+fclose(fp) would close both the stream and the underlying fd. Without it:
+  - The FILE stream's internal buffer is leaked
+  - The file descriptor is leaked
+  - The child process may not receive EOF on its stdout pipe
+
+Comparison with get_ofpathname() in the same file (lines 36-78): that
+function follows the identical pattern but correctly calls fclose(fp) at
+line 73 before returning.
+
+Consequence: Each call leaks one FILE stream and one file descriptor. In
+current code the function is called at most once per grub-install
+invocation, so the leak is not practically harmful. However, it is a
+correctness defect.
 ```
 
-**For MR/PR-based reviews:**
+---
+
+### Phase 5: Format and Verify
+
+**Goal**: Ensure all files meet formatting standards.
+
+#### Line Width: 120 Characters
+
+All review and reasoning files must have lines under 120 characters.
 
 ```bash
-# Count commits in the MR/PR
-git log --oneline origin/master..BRANCH_NAME | wc -l
-
-# Or use the PR/MR API
-gh pr view 42 --json commits --jq '.commits | length'
-glab mr view 42 --json | jq '.commits | length'
-```
-
-**Verification process:**
-
-1. **Count commits** in the actual branch/MR
-2. **Check review file** for number of commits listed
-3. **List all commit hashes** documented in review
-4. **Cross-reference** with actual git log output
-
-**Example: Verifying MR !39**
-
-```bash
-# Review claims: 5 commits
-git checkout 2025-05-0016
-git log --oneline c160b5861..HEAD | wc -l
-# Output: 9
-
-# ✗ INCOMPLETE - 4 commits missing from review!
-# Must re-review and add missing commits
-```
-
-**If commits are missing:**
-1. Identify which commits weren't reviewed
-2. Review the missing commits thoroughly
-3. Update the review file with ALL commits
-4. Check if missing commits contain critical fixes (often the case!)
-
-**Critical commits often missed:**
-- Small "fix typo" commits (may fix critical bugs)
-- "Address review comments" commits (contain important fixes)
-- Commits in the middle of a series
-- Merge commits that resolve conflicts
-
-#### 3. File Completeness Check
-
-**Verify file pairs:**
-- Every review file exists: `reviews/IDENTIFIER.md`
-- Reasoning file exists only for reviews with issues
-- No orphaned reasoning files
-
-```bash
-# Count reviews
-total_reviews=$(ls reviews/*.md | wc -l)
-
-# Count reviews with issues
-reviews_with_issues=$(grep -L "No issues found" reviews/*.md | wc -l)
-
-# Count reasoning files
-reasoning_files=$(ls reviews/*_reasoning.txt | wc -l)
-
-# Verify: reasoning_files should equal reviews_with_issues
-```
-
-#### 4. Format Verification
-
-**Check line lengths:**
-```bash
+# Check all review files
 for file in reviews/*.md reviews/*_reasoning.txt; do
-  cnt=$(awk 'length > 120' "$file" | wc -l)
+  cnt=$(awk 'length > 120' "$file" 2>/dev/null | wc -l)
   if [ "$cnt" -gt 0 ]; then
     echo "$file: $cnt lines over 120 chars"
   fi
 done
 ```
 
-**Expected output:** No files with lines over 120 chars
+**Break lines at natural points:**
+- After commas, periods, colons
+- Before conjunctions (and, but, or)
+- Before/after parentheses
+- Never break function names, file paths, or code within backticks
 
-#### 5. Content Quality Check
-
-For each review file, verify:
-- [ ] Title includes MR/PR/commit identifier
-- [ ] Summary paragraph describes the change
-- [ ] Correct commit count listed
-- [ ] All commits documented (hash + description)
-- [ ] Issues include file paths and line numbers
-- [ ] **Every bug verified by reading actual code (no false positives)**
-- [ ] Technical terminology is precise
-- [ ] Impact/consequences are stated
-- [ ] "No issues found" present if clean
-
-For each reasoning file, verify:
-- [ ] Starts with severity level
-- [ ] Includes specific location (file:line)
-- [ ] Explains what is wrong, not how to fix
-- [ ] **Bug verified in actual code before documenting**
-- [ ] States consequences
-- [ ] No recommendations or subjective opinions
-
-## File Organization
-
-**Expected Structure:**
-```
-reviews/
-├── 2025-05-0103.md              # Full review (MR !42)
-├── 2025-05-0103_reasoning.txt   # Brief reasoning (has issues)
-├── 2025-01-0091.md              # Full review (MR !20)
-├── 2025-01-0091_reasoning.txt   # Brief reasoning (has issues)
-├── 2025-03-0223.md              # Full review (MR !26)
-│                                # No reasoning file (no issues found)
-└── ...
-```
-
-## Common Patterns
-
-### Critical Issues
-
-**Compilation Error:**
-```markdown
-- **Critical: Compilation error** (file.c:line): Code references nonexistent struct member `field`.
-  Struct definition (lines X-Y) only has fields A, B, C. Will fail with "no member named 'field'" error.
-```
-
-**Double-Free:**
-```markdown
-- **Potential double-free** (file.c:line1,line2): `func_a()` frees pointer without setting to NULL.
-  If `func_b()` is called, retrieves dangling pointer and frees again, causing double-free.
-```
-
-**NULL Dereference:**
-```markdown
-- **NULL pointer dereference** (file.c:line): `func()` calls `foo(ptr, 0)` passing NULL as second
-  parameter. When condition true, line X dereferences NULL (`if (*param == 0)`), causing crash.
-```
-
-### Minor Issues
-
-**Misleading Code:**
-```markdown
-- **Minor: Misleading variable name** (file.c:line): Variable `count` actually holds size in bytes,
-  not element count. May confuse future maintainers but functionally correct.
-```
-
-**Incomplete Cleanup:**
-```markdown
-- **Minor: File descriptor leak** (file.awk:line): Opens file with getline but never closes. Should
-  add `close(file)` to avoid fd exhaustion with many files.
-```
-
-### Review Notes
-
-**Platform-Specific:**
-```markdown
-**Note**: Cannot thoroughly review due to platform-specific nature (PowerPC/IEEE1275). Requires
-specialized hardware. No obvious issues in code structure but extensive testing recommended.
-```
-
-**Requires Expertise:**
-```markdown
-**Note**: Requires security/cryptography expertise. Implementation involves TPM measurements and DRTM
-beyond general code review scope. Recommend review by security team familiar with TCG D-RTM.
-```
-
-### Verifying Fixes
-
-When a developer adds a commit claiming to fix an issue you reported, verify the fix is correct.
-
-**Process:**
-1. Read the review to understand the original bug
-2. Check out the branch with the fix commit
-3. Read the actual code to see if the fix addresses the root cause
-4. Verify no new bugs were introduced
-
-**Example: Verifying double-free fix**
+#### Completeness Check
 
 ```bash
-# Review reported: Double-free in grub-core/commands/mfa.c
-# Developer added commit 3a43f715a claiming to fix it
-
-git checkout branch-with-fix
-git show 3a43f715a
-
-# Check the fix addresses the issue
-git show HEAD:grub-core/commands/mfa.c | sed -n '210,220p'
-# Line 212-214:
-#   password_ctx.password = NULL;
-#   password_ctx.password_len = 0;
-# ✓ Fix correctly nulls pointer after returning it - double-free prevented
+# Every review with issues should have a reasoning file
+for f in reviews/*.md; do
+  base=$(basename "$f" .md)
+  if ! grep -q "No issues found" "$f" 2>/dev/null; then
+    if [ ! -f "reviews/${base}_reasoning.txt" ]; then
+      echo "MISSING: reviews/${base}_reasoning.txt"
+    fi
+  fi
+done
 ```
 
-**Verification checklist for fixes:**
-- [ ] Fix addresses the root cause (not just symptoms)
-- [ ] No new bugs introduced (e.g., didn't just move the problem)
-- [ ] Handles all code paths (including error paths)
-- [ ] Cleanup code is comprehensive
-- [ ] Fix is minimal and focused (doesn't change unrelated code)
+#### Content Quality Checklist
+
+**Review file:**
+- [ ] Title includes MR/PR identifier and brief description
+- [ ] All commits listed with hashes and descriptions
+- [ ] Commit count matches actual (`git log --oneline | wc -l`)
+- [ ] Each issue has file path and line numbers
+- [ ] Every bug verified by reading actual source code
+- [ ] Draft fix or "not straightforward" explanation for each issue
+- [ ] Review Result section summarizes findings
+- [ ] Lines under 120 characters
+
+**Reasoning file:**
+- [ ] Only exists for reviews WITH issues
+- [ ] Each issue has Discovery, Analysis, Step-by-step, Consequence
+- [ ] Specific line numbers referenced throughout
+- [ ] Concrete execution trace (not hypothetical)
+- [ ] A reader could independently verify the conclusion
+- [ ] Lines under 120 characters
+
+---
+
+## Reviewing Multiple MRs
+
+When reviewing several MRs at once, run reviews in parallel where possible:
+
+1. **List all MRs** with commit counts first
+2. **Review in parallel** -- each MR is independent, spawn concurrent reviews
+3. **Verify sequentially** -- re-read each review's findings against actual code
+4. **Draft fixes** -- add patches or explanations to each review
+5. **Deep reasoning** -- ensure reasoning files have full step-by-step depth
+
+---
+
+## Common Bug Patterns
+
+**Resource leak (FILE stream):**
+```
+fdopen(fd, "r") opens a FILE stream. If fclose(fp) is never called, both the
+FILE stream buffer and the underlying fd leak. Check every fdopen has a matching
+fclose on all return paths.
+```
+
+**Error/success conflation:**
+```
+Function returns errno (non-zero) on error and 1 on success. Caller tests
+`if (ret)` treating both as the same condition. Error silently treated as
+success. Check return value semantics match caller expectations.
+```
+
+**Dead code from branch ordering:**
+```
+Shell case statement: x*) matches before x), making x) unreachable. In C:
+default case before specific cases. Check that more specific patterns precede
+wildcards/defaults.
+```
+
+**Documentation/code mismatch:**
+```
+Docs describe one delimiter/format/behavior, code implements another. Users
+following docs get broken results. Cross-reference documentation against actual
+parsing code.
+```
+
+**Dead code from guard conditions:**
+```
+Guard condition guarantees a value (e.g., !ptr means ptr is NULL). Code inside
+the guard operates on that value redundantly (e.g., free(ptr) where ptr is
+always NULL). Check what the guard condition guarantees about variables inside
+the block.
+```
+
+---
 
 ## Anti-Patterns to Avoid
 
-**Too verbose:**
+**Asserting without proving:**
 ```
-❌ The code has an issue where it doesn't properly check the return value, which could potentially
-   lead to problems in certain scenarios where the operation might fail.
-```
-
-**Too brief:**
-```
-❌ Unchecked return value at line 36.
+BAD:  "This could cause a double-free."
+GOOD: "free() at line 2099 does not NULL the pointer. Line 2143 retrieves the
+       same pointer via transfer->controller_data. Line 2196 frees it again."
 ```
 
-**Just right:**
+**Vague consequences:**
 ```
-✓ Critical: FITHAW return value not checked at journaled_fs.c:36. If unfreeze fails, filesystem
-  remains frozen, making system unbootable.
-```
-
-**Don't suggest fixes:**
-```
-❌ Should add NULL check before dereferencing pointer.
-✓ NULL pointer dereference at file.c:123. Pointer not validated before use.
+BAD:  "This might cause problems."
+GOOD: "grub-install reports success but no EFI boot entry is created. System
+       will not boot GRUB after firmware boot order reset."
 ```
 
-**Don't be subjective:**
+**Suggesting fixes in reasoning files:**
 ```
-❌ This approach seems questionable and might be improved.
-✓ Logic error at file.c:45. Uses > instead of >=, causing off-by-one error.
-```
-
-## Integration & Automation
-
-### Batch Review Script
-
-```bash
-#!/bin/bash
-# Review multiple branches/commits
-
-for branch in $(cat branches_to_review.txt); do
-  echo "=== Reviewing $branch ==="
-
-  # Checkout and examine
-  git checkout "$branch"
-
-  # [Perform review - manual or assisted]
-  # Create reviews/${branch}.md
-
-  # If issues found, create reviews/${branch}_reasoning.txt
-
-  # Format files
-  # [Apply formatting]
-done
-
-# Verify all files
-./verify_reviews.sh
+BAD:  "Should add fclose(fp) before return."
+GOOD: "fp is never closed before return rc on line 129."
+(Fixes go in the review .md file, not in reasoning.)
 ```
 
-### Integration with CI/CD
-
-- Generate review files as part of PR/MR workflow
-- Automate formatting checks
-- Link review files to issue tracking
-- Include in documentation builds
-
-## Customization
-
-Adjust these based on project needs:
-
-**Width Limit:**
-- Default: 120 characters
-- Terminal-friendly: 80 characters
-- Wide display: 132 characters
-
-**Severity Levels:**
-- Default: Critical/Minor/Note/Concern
-- Custom: Blocker/Major/Minor/Trivial
-- CVSS-based: Critical/High/Medium/Low
-
-**File Naming:**
-- Default: `IDENTIFIER.md` + `IDENTIFIER_reasoning.txt`
-- Alternative: `IDENTIFIER/review.md` + `IDENTIFIER/reasoning.txt`
-- With dates: `YYYY-MM-DD_IDENTIFIER.md`
-
-**Review Format:**
-- Default: Markdown
-- Alternative: reStructuredText, AsciiDoc
-- Structured: YAML/JSON with Markdown content
-
-## Output Summary
-
-After applying this skill, you should have:
-
-- ✓ Complete review file for each patch/commit (`*.md`)
-- ✓ **All commits verified as reviewed (no missing commits)**
-- ✓ **Every bug verified by reading actual code (zero false positives)**
-- ✓ Reasoning file for each review with issues (`*_reasoning.txt`)
-- ✓ All files formatted to width constraint (120 chars)
-- ✓ Clear, technical documentation of findings
-- ✓ Verification confirming completeness, accuracy, and quality
-- ✓ Ready for sharing with developers/team
-
-## Example End-to-End Session
-
-```bash
-# 1. Review a specific MR/branch
-git checkout 2025-05-0103
-
-# 2. Count commits (verify completeness)
-git log --oneline master..HEAD | wc -l
-# Output: 1 commit - remember this number
-
-# 3. Examine the code
-git log 2025-05-0103 --oneline
-git diff master...2025-05-0103
-
-# 4. Read actual code files (not just diffs!)
-git show HEAD:grub-core/bus/usb/xhci.c | less
-
-# 5. Create review file
-cat > reviews/2025-05-0103.md <<EOF
-# AI Review: MR !42 - Add xHCI support
-
-1 commit adds USB 3.0 (xHCI) controller driver. 2963 lines based on SeaBIOS implementation.
-
-- **Potential double-free** (grub-core/bus/usb/xhci.c:2099,2196): ...
-EOF
-
-# 6. VERIFY the bug by reading actual code
-git show HEAD:grub-core/bus/usb/xhci.c | sed -n '2090,2105p'
-# Confirm: Line 2099 frees, no NULL assignment
-git show HEAD:grub-core/bus/usb/xhci.c | sed -n '2190,2200p'
-# Confirm: Line 2196 frees again
-# ✓ Bug verified - NOT a false positive
-
-# 7. Create reasoning file (if issues found)
-cat > reviews/2025-05-0103_reasoning.txt <<EOF
-Critical: Double-free at grub-core/bus/usb/xhci.c:2099,2196...
-EOF
-
-# 8. Format files
-./format_reviews.sh
-
-# 9. Verify completeness and formatting
-git log --oneline master..HEAD | wc -l  # Should match review
-awk 'length > 120' reviews/2025-05-0103.md  # Should be empty
-awk 'length > 120' reviews/2025-05-0103_reasoning.txt  # Should be empty
+**Reporting style issues as bugs:**
+```
+BAD:  "Minor: Variable name 'x' is not descriptive."
+GOOD: Don't report this at all. Only report issues that affect correctness.
 ```
 
-## Reference
+---
 
-**Common File Locations:**
-- Linux kernel: drivers/, fs/, arch/, include/
-- GRUB: grub-core/, include/grub/, util/
-- User space: src/, lib/, tests/
+## Version History
 
-**Helpful Commands:**
-- `git log -p BRANCH` - Show patches
-- `git diff BASE...BRANCH` - Show changes
-- `git show COMMIT:file` - Show file at commit
-- `grep -r "function_name" .` - Find usage
-- `awk 'length > 120' file` - Check line length
+- **3.0.0** (2026-05-03): Restructured to match actual review workflow. Added Phase 3
+  (Draft Fixes) and Phase 4 (Deep Reasoning). Updated review file format with structured
+  headings. Updated reasoning file format to require Discovery/Analysis/Step-by-step/
+  Consequence sections. Added parallel review guidance. Removed unused sections
+  (CI/CD integration, customization options). Updated examples from actual reviews.
+- **2.1.0** (2026-04-10): Added Phase 0 (Perform Code Review) with checklist and bug
+  patterns. Added verification examples. Added common false positive patterns.
+- **2.0.0**: Added verification phase, completeness checks, false positive prevention.
+- **1.0.0**: Initial version with basic review and formatting workflow.
 
-**Common Bug Keywords:**
-- Search for: malloc, free, NULL, return, error, fail, leak, ptr, size, len, count, buffer
-- Flag: TODO, FIXME, XXX, HACK, BUG
-- Review: goto, break, continue, recursion
+---
+
+## See Also
+
+- **refresh-docs** - For updating documentation after reviews change project state
+- **auto-memory** - For capturing review workflow knowledge in project MEMORY.md
