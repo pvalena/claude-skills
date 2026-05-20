@@ -2,7 +2,7 @@
 name: Code Review
 description: Complete workflow for reviewing patches/commits, documenting findings, and formatting results
 author: pvalena
-version: 3.1.0
+version: 3.2.0
 tags: [code-review, documentation, formatting, security, quality, verification, false-positives]
 ---
 
@@ -110,6 +110,15 @@ earlier in the function, related code in the same file.
 
 **File naming**: `reviews/IDENTIFIER.md` (e.g., `pr89.md`, `2025-05-0103.md`)
 
+**Format principles:**
+- Be brief; do not repeat the same information. No "intro - content - conclusion" structure.
+- Short intro is fine (commit count, brief scope, commit hashes for reference).
+- The main content is the issues themselves. Each issue should explain the bug, show
+  relevant code, and include a draft fix (or explain why one isn't included).
+- Do NOT include severity labels on issues.
+- Do NOT include a "Review Result" summary section -- it just repeats the issues.
+- End with a link to the reasoning file (when issues were found).
+
 **Structure:**
 
 ```markdown
@@ -123,21 +132,19 @@ N commit(s) [brief description of what the change does].
 
 ## Issues Found
 
-### 1. Short issue title
+### Issue 1: Short issue title
 
-**File:** `path/to/file.c`
-**Location:** `function_name()`, lines ~N-M
+**Location:** `path/to/file.c`, `function_name()`, lines ~N-M
 
-[Technical description of the issue. What the code does, what's wrong with it,
-what the consequence is. Include a code snippet if it clarifies.]
+[Technical description: what the code does, what's wrong, what the
+consequence is. Include a code snippet if it clarifies. Include a
+draft fix diff if the fix is straightforward.]
 
-### 2. Next issue...
+---
 
-## Review Result
+### Issue 2: Next issue...
 
-[1-2 sentence summary: how many issues, which are most significant.]
-
-For more details: [URL to the reasoning file in the project's repository]
+For more details: [URL to reasoning file]
 ```
 
 The "For more details" link should point to the reasoning file in the project's hosted
@@ -152,16 +159,12 @@ remote_url=$(git remote get-url origin | sed 's/\.git$//' | sed 's|git@github.co
 
 Only include this link when issues were found (i.e., when a reasoning file exists).
 
-**If no issues found**, replace the Issues Found section with:
+**If no issues found:**
 
 ```markdown
 ## Issues Found
 
 No issues found.
-
-## Review Result
-
-[Brief explanation of why the code is correct, what was validated.]
 ```
 
 #### 7. Create Reasoning File (Only If Issues Found)
@@ -170,35 +173,53 @@ No issues found.
 
 **Do NOT create** reasoning files for clean reviews.
 
-**Structure** -- for each issue, include four sections:
+**Purpose**: The reasoning file is the full verification trail. Another AI (or human)
+reading it should be able to reproduce the entire analysis independently, without
+access to the original conversation. It must contain enough detail that every
+conclusion is independently verifiable.
+
+**Header**: Start with a one-line summary (PR number, title, commit count), then list
+all source files read during review and verification.
+
+**Structure** -- for each issue, use a `== Issue N: title ==` header and include:
 
 ```
-[Severity]: [Issue title] at [file:location].
+== Issue N: Short title (file.c) ==
 
-Discovery: [How the issue was found -- what drew attention to it.]
+Discovery:
+What specific code or pattern drew attention. Which file, which line,
+what looked suspicious at first glance and why.
 
-Analysis: [Technical breakdown. Trace through the code. Show what
-values variables hold, what conditions are true/false, what code paths
-execute. Reference specific line numbers.]
+Source trace:
+Which functions/files were traced and what was found. For example, if
+a function returns a malloc'd pointer, trace the function to confirm
+the allocation. If an API has specific semantics (e.g., grub_strtol
+never sets endp to NULL), trace into the implementation and cite the
+specific lines that prove it. Reference concrete line numbers.
 
-Step-by-step [for a concrete scenario]:
-  1. [First thing that happens]
-  2. [Next thing]
-  ...
-  N. [Final consequence]
+Consequence:
+What actually goes wrong in practice. Be specific -- not "could leak"
+but "leaks one FILE stream and one fd per call, exhausting fd table
+after N invocations." Include what the user would see if applicable
+(error messages, silent failures, data corruption).
 
-Consequence: [What goes wrong in practice. Severity justification.]
-
----
-
-[Next issue]
+Fix verification:
+Why the suggested fix is correct. Confirm it doesn't introduce new
+issues (e.g., doesn't mask errors from subsequent operations, doesn't
+use-after-free, scoping is correct for the language standard). Note
+any caveats (e.g., "fix requires restructuring surrounding code, so
+no draft diff included").
 ```
 
-**Severity levels:**
-- **Critical**: Crashes, memory corruption, security vulnerabilities, data loss
-- **Minor**: Dead code, misleading names, resource leaks in short-lived processes
-- **Note**: Observations, limitations, areas needing specialized review
-- **Concern**: Potential issues requiring deeper analysis or domain expertise
+When the issue involves platform-dependent behavior, verify which platforms
+are affected (e.g., check Makefile.core.def for module enable flags). When
+the issue involves API semantics, trace into the implementation and cite
+specific lines. When the issue involves header conflicts, verify both files
+exist and use the same guard.
+
+For AI-assisted code, add an "AI-assistance scrutiny" paragraph noting what
+the AI likely got right/wrong and why (e.g., "handled local control flow
+correctly but missed the global grub_errno contract").
 
 ---
 
@@ -360,68 +381,85 @@ and their implications.]
 
 ---
 
-### Phase 4: Deep Reasoning
+### Phase 4: Verify and Deepen Reasoning
 
-**Goal**: Ensure reasoning files contain enough depth for independent verification.
+**Goal**: After the initial review, re-read actual source code to verify every finding
+and ensure reasoning files contain the full verification trail.
 
-A good reasoning file lets someone who has never seen the code follow your analysis
-and arrive at the same conclusion. It should read like a proof, not an assertion.
+This is a separate pass from Phase 1. The reasoning file written during Phase 1 is a
+first draft. Phase 4 strengthens it by:
 
-#### Required Depth
+1. Re-reading each source file cited in the reasoning to confirm findings
+2. Tracing API semantics into their implementations (not just trusting docs/comments)
+3. Checking platform-dependent behavior (module enable flags, type sizes, etc.)
+4. Verifying that suggested fixes are correct and don't introduce new issues
+5. Adding the verification results to the reasoning file
 
-For each issue, the reasoning file must include:
+#### Verification checklist for each issue
 
-1. **Discovery**: What specific code or pattern drew your attention. Which file, which
-   line, what looked wrong at first glance.
+- [ ] Re-read the source file at the branch; confirm the bug exists as described
+- [ ] Check for context that might invalidate the finding (guards, cleanup code, etc.)
+- [ ] If the issue involves API semantics, trace into the implementation and cite lines
+- [ ] If the issue is platform-dependent, check build config (Makefiles, module defs)
+- [ ] If the issue involves header/guard conflicts, verify both files exist in-tree
+- [ ] Verify the suggested fix doesn't mask real errors or introduce new bugs
+- [ ] Verify fix scoping/types are correct for the codebase's language standard
 
-2. **Analysis**: Technical breakdown with specific line numbers. Trace through the code
-   showing what values variables hold at each step. Reference the actual code, not
-   hypotheticals.
+#### Required Depth in Reasoning Files
 
-3. **Step-by-step scenario**: A concrete execution trace showing how the bug manifests.
-   Number each step. Include the state of relevant variables at each point.
+A good reasoning file lets another AI (or human) who has never seen the code follow
+the analysis and arrive at the same conclusion. It should read like a proof, not an
+assertion. Every claim must cite a specific file, line, or function.
 
-4. **Consequence**: What actually goes wrong. Be specific -- "crashes" is insufficient;
-   "efibootmgr pipe failure returns errno=24 to caller, caller treats non-zero as
-   'already registered', returns 0 (success), boot entry is never created" is
-   sufficient.
+**Header**: List all source files read during review and verification. This allows a
+reader to reconstruct the exact same analysis.
+
+**Per issue**: Discovery (what drew attention) -> Source trace (what was followed and
+what was found at each step) -> Consequence (what breaks in practice) -> Fix
+verification (why the fix is correct and doesn't introduce new problems).
+
+See the reasoning file format in Phase 1, Step 7 for the exact structure.
 
 #### Example: Thorough Reasoning Entry
 
 ```
-Minor: Missing fclose(fp) in grub_install_efi_is_registered() at
-grub-core/osdep/unix/platform.c, before `return rc` on line 129.
+== Issue 1: Missing fclose(fp) (platform.c) ==
 
-Discovery: Reading the function's resource management, the FILE stream is
-opened at line 97:
-  FILE *fp = fdopen(fd, "r");
-Then used in the while loop (lines 103-127) to read efibootmgr output via
-getline(). After the loop, line 128-129:
+Discovery:
+Reading grub_install_efi_is_registered() resource management. FILE
+stream opened at line 97 via fdopen(fd, "r"), used in while loop
+(lines 103-127) via getline(). After the loop, lines 128-129:
   free(line);
   return rc;
-The function frees the line buffer but never calls fclose(fp).
+The line buffer is freed but fclose(fp) is never called.
 
-Analysis: Tracing resource lifecycle:
-  1. grub_util_exec_pipe() creates a pipe and returns fd (line 85)
+Source trace:
+Traced resource lifecycle through the function:
+  1. grub_util_exec_pipe() creates a pipe, returns fd (line 85)
   2. fdopen(fd, "r") wraps fd into FILE* fp (line 97)
   3. getline() reads from fp in the loop (line 108)
   4. free(line) releases the line buffer (line 128)
   5. return rc -- fp is NOT closed (line 129)
 
 After fdopen() succeeds, the fd is owned by the FILE stream. Calling
-fclose(fp) would close both the stream and the underlying fd. Without it:
-  - The FILE stream's internal buffer is leaked
-  - The file descriptor is leaked
-  - The child process may not receive EOF on its stdout pipe
+fclose(fp) would close both the stream and the underlying fd.
 
-Comparison with get_ofpathname() in the same file (lines 36-78): that
-function follows the identical pattern but correctly calls fclose(fp) at
-line 73 before returning.
+Cross-reference: get_ofpathname() in the same file (lines 36-78)
+follows the identical pattern but correctly calls fclose(fp) at
+line 73 before returning. This confirms the omission is unintentional.
 
-Consequence: Each call leaks one FILE stream and one file descriptor. In
-current code the function is called at most once per grub-install
-invocation, so the leak is not practically harmful. However, it is a
-correctness defect.
+Consequence:
+Each call leaks one FILE stream and one file descriptor. In current
+code the function is called at most once per grub-install invocation,
+so the leak is not practically harmful. However, it is a correctness
+defect and would become a real problem if the function were called in
+a loop.
+
+Fix verification:
+Adding fclose(fp) before "return rc" on line 129 is correct. The fp
+is not used after the while loop. free(line) must come before
+fclose(fp) because getline's buffer is independent of the stream.
+The fix does not affect the return value (rc is already computed).
 ```
 
 ---
@@ -470,18 +508,23 @@ done
 - [ ] Title includes MR/PR identifier and brief description
 - [ ] All commits listed with hashes and descriptions
 - [ ] Commit count matches actual (`git log --oneline | wc -l`)
-- [ ] Each issue has file path and line numbers
+- [ ] No severity labels on issues
+- [ ] No "Review Result" summary section
+- [ ] Each issue has location (file, function, lines)
 - [ ] Every bug verified by reading actual source code
 - [ ] Draft fix or "not straightforward" explanation for each issue
-- [ ] Review Result section summarizes findings
+- [ ] Ends with reasoning file link (when issues found)
+- [ ] No repeated information between intro, issues, and link
 - [ ] Lines under 120 characters
 
 **Reasoning file:**
 - [ ] Only exists for reviews WITH issues
-- [ ] Each issue has Discovery, Analysis, Step-by-step, Consequence
+- [ ] Header lists all source files read during review
+- [ ] Each issue has Discovery, Source trace, Consequence, Fix verification
+- [ ] API semantics traced into implementations (not assumed from docs)
+- [ ] Platform-dependent issues verified via build config
 - [ ] Specific line numbers referenced throughout
-- [ ] Concrete execution trace (not hypothetical)
-- [ ] A reader could independently verify the conclusion
+- [ ] Another AI could reproduce the entire analysis from this file alone
 - [ ] Lines under 120 characters
 
 ---
@@ -519,6 +562,37 @@ success. Check return value semantics match caller expectations.
 Shell case statement: x*) matches before x), making x) unreachable. In C:
 default case before specific cases. Check that more specific patterns precede
 wildcards/defaults.
+```
+
+**Mutation of const environment storage:**
+```
+grub_env_get() returns a pointer to internal storage (const char *). Code that
+casts away const and modifies through the pointer corrupts the environment table.
+Even "temporary" mutations (*ext = '\0'; ...; *ext = '.';) are UB and fragile.
+Fix: grub_strdup() before mutation, grub_free() after use.
+```
+
+**Wrong error check for grub_strtol/grub_strtoull:**
+```
+grub_strtol() never sets *endp to NULL. On parse failure, *endp points into the
+string and grub_errno is set. Checking "if (endp != NULL)" is always true. The
+correct check is "if (grub_errno == GRUB_ERR_NONE)".
+```
+
+**Platform-dependent type sizes:**
+```
+sizeof(long) is 4 on 32-bit, 8 on 64-bit. If a spec defines a field as 64-bit,
+using long is correct only on 64-bit. Check module enable flags in
+Makefile.core.def -- "enable = efi" includes 32-bit platforms. Use fixed-width
+types (grub_uint64_t) for spec-defined sizes.
+```
+
+**Leaked grub_errno from best-effort operations:**
+```
+grub_errno is a global that persists until cleared. If a "non-fatal" operation
+fails and sets grub_errno but the function returns GRUB_ERR_NONE, the script
+executor's grub_print_error() will print a spurious error message. Clear
+grub_errno after intentionally-ignored failures.
 ```
 
 **Documentation/code mismatch:**
@@ -571,6 +645,14 @@ GOOD: Don't report this at all. Only report issues that affect correctness.
 
 ## Version History
 
+- **3.2.0** (2026-05-20): Leaner review format: removed severity labels, removed
+  "Review Result" section (no intro-content-conclusion repetition), reasoning link
+  stands alone at the end. Expanded reasoning file requirements: full verification
+  trail (Discovery, Source trace, Consequence, Fix verification), header listing all
+  source files read, API semantics must be traced into implementations, platform
+  behavior verified via build config. Merged Phase 4 into a verification-focused
+  pass. Added 4 new bug patterns: const env mutation, grub_strtol error checking,
+  platform-dependent type sizes, leaked grub_errno. Based on PR124/PR126 reviews.
 - **3.1.0** (2026-05-14): Added commit message verification step (Phase 1, step 2).
   Added AI-generated code verification section (Phase 2) with checklist for
   heightened scrutiny when AI-assistance tags are present. Based on review of
