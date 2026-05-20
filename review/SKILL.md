@@ -2,7 +2,7 @@
 name: Code Review
 description: Complete workflow for reviewing patches/commits, documenting findings, and formatting results
 author: pvalena
-version: 3.0.0
+version: 3.1.0
 tags: [code-review, documentation, formatting, security, quality, verification, false-positives]
 ---
 
@@ -53,7 +53,22 @@ git log --oneline origin/master..BRANCH | wc -l
 
 Record the exact count -- you must review every commit and list each one in the review file.
 
-#### 2. Read the Full Diff
+#### 2. Read Commit Messages
+
+```bash
+git log origin/master..BRANCH --format=full
+```
+
+Check commit messages for:
+- **Factual accuracy**: Do referenced commits (e.g., "Fixes commit abc123") actually exist?
+  Verify with `git log --oneline --all --grep="abc123"`.
+- **Correctness of claims**: Does the commit message accurately describe what the code does?
+  Cross-reference each claim against the actual diff.
+- **AI-assisted flag**: Look for `Assisted-by:`, `Co-authored-by:`, or similar tags indicating
+  AI-generated code (e.g., `github-copilot`, `claude`, `chatgpt`). If present, apply
+  heightened scrutiny (see Phase 2: AI-Generated Code Verification).
+
+#### 3. Read the Full Diff
 
 ```bash
 git diff origin/master..BRANCH
@@ -61,7 +76,7 @@ git diff origin/master..BRANCH
 
 Identify files changed, scope of modifications, and areas requiring deeper inspection.
 
-#### 3. Read Actual Source Code
+#### 4. Read Actual Source Code
 
 **This is the critical step.** For every file changed, read the actual source at the branch:
 
@@ -73,7 +88,7 @@ git show BRANCH:path/to/file.c | sed -n '80,120p'   # specific lines
 Do NOT rely on diffs alone. Diffs hide context: cleanup code after the hunk, NULL checks
 earlier in the function, related code in the same file.
 
-#### 4. What to Look For
+#### 5. What to Look For
 
 **Critical issues:**
 - Memory management: leaks, double-free, use-after-free, dangling pointers
@@ -91,7 +106,7 @@ earlier in the function, related code in the same file.
 - Alternative implementations (unless current is demonstrably wrong)
 - Theoretical issues without concrete impact
 
-#### 5. Create Review File
+#### 6. Create Review File
 
 **File naming**: `reviews/IDENTIFIER.md` (e.g., `pr89.md`, `2025-05-0103.md`)
 
@@ -149,7 +164,7 @@ No issues found.
 [Brief explanation of why the code is correct, what was validated.]
 ```
 
-#### 6. Create Reasoning File (Only If Issues Found)
+#### 7. Create Reasoning File (Only If Issues Found)
 
 **File naming**: `reviews/IDENTIFIER_reasoning.txt`
 
@@ -207,6 +222,40 @@ independently verify each finding.
    - Is the pointer set to NULL after the free?
    - Does the API guarantee something that makes this safe?
    - Is there cleanup code outside the visible diff?
+
+#### AI-Generated Code Verification
+
+When commit messages contain `Assisted-by:`, `Co-authored-by:` with an AI tool name,
+or any other indicator of AI-generated code, apply additional scrutiny:
+
+1. **Verify every claim in the commit message**: AI-generated commit messages may
+   reference commits, functions, or behaviors that don't exist or are described
+   inaccurately. Check each referenced commit hash with `git log --all --grep`.
+
+2. **Question whether the code makes sense holistically**: AI can produce code that
+   is locally correct but doesn't fit the surrounding architecture. Check:
+   - Does the change interact correctly with the build system (linker scripts,
+     Makefiles, module definitions)?
+   - Are there downstream consumers that expect the old behavior?
+   - Does the change match the project's existing patterns for similar problems?
+
+3. **Check comments and documentation for accuracy**: AI-generated comments may
+   contain subtle inaccuracies (wrong terminology, slightly-off grammar that
+   obscures meaning, claims about guarantees that don't hold). Read every comment
+   added by the patch critically.
+
+4. **Trace the full execution path**: AI-generated code often handles the common
+   case correctly but may miss edge cases or make assumptions about platform
+   guarantees (e.g., identity mapping, memory ordering, API contracts) that need
+   verification.
+
+5. **Don't assume correctness from plausibility**: AI code can look convincing
+   while being subtly wrong. The standard is the same as any other code: verify
+   in the actual source, not by reading the diff and nodding along.
+
+If the code passes all these checks, note in the Review Result that AI-assistance
+was declared and the code was verified. Do not penalize correct code for being
+AI-assisted.
 
 #### For Clean Reviews
 
@@ -522,6 +571,10 @@ GOOD: Don't report this at all. Only report issues that affect correctness.
 
 ## Version History
 
+- **3.1.0** (2026-05-14): Added commit message verification step (Phase 1, step 2).
+  Added AI-generated code verification section (Phase 2) with checklist for
+  heightened scrutiny when AI-assistance tags are present. Based on review of
+  MR !122 (Assisted-by: github-copilot:claude-opus-4.7).
 - **3.0.0** (2026-05-03): Restructured to match actual review workflow. Added Phase 3
   (Draft Fixes) and Phase 4 (Deep Reasoning). Updated review file format with structured
   headings. Updated reasoning file format to require Discovery/Analysis/Step-by-step/
