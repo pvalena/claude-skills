@@ -298,6 +298,44 @@ If the code passes all these checks, note in the review intro that AI-assistance
 was declared and heightened scrutiny was applied. Do not penalize code that looks
 correct for being AI-assisted.
 
+#### Agent-Delegated Reviews
+
+When reviews are produced by spawned agents (e.g., parallel review of multiple MRs),
+treat every finding as a draft that needs confirmation. Agents make claims sourced
+from training knowledge that read as if they came from the source code. Three
+categories require particular scrutiny:
+
+**Spec compliance claims**: "Per the virtio 1.0 spec (section 2.6.6)..." or "the
+TPM 2.0 spec defines this as 64-bit." The agent did not fetch the spec -- it is
+recalling training data. The claim may be correct, but you cannot vouch for it.
+Either read the actual spec (via WebFetch), confirm the behavior by reading in-tree
+code that implements it, or soften the language: "the expected behavior based on
+other virtio drivers in-tree" instead of "per the spec."
+
+**Platform behavior claims**: "On i386_ieee1275, grub_pci_device_unmap_range
+performs actual resource cleanup." The agent is asserting what a platform-specific
+implementation does without necessarily having read it. Read the actual
+implementation yourself. In PR133, this type of claim turned out to be false --
+the function was an empty no-op on ieee1275, and the finding based on it had to
+be dropped.
+
+**API contract claims**: "This function never returns NULL" or "grub_strtol never
+sets *endp to NULL." These may be correct if the agent traced into the
+implementation and cited specific lines. Check whether the reasoning file cites
+concrete lines from the actual implementation, or whether it just asserts the
+behavior. If it cites lines, spot-check one or two. If it just asserts, trace
+into the implementation yourself.
+
+**Process**: For each agent-produced finding:
+1. Read the issue description and identify claims about behavior outside the
+   changed files (specs, platform code, API internals)
+2. For each such claim, check: did the agent cite specific lines from the actual
+   source, or is it asserting from training knowledge?
+3. If citing lines: spot-check at least one claim by reading the source yourself
+4. If asserting: either read the code to confirm, soften the language, or drop
+   the finding if it depends entirely on the unconfirmed claim
+5. Never pass through an agent's claim as your own without this check
+
 #### For Clean Reviews
 
 Re-read the diff and source code looking for anything missed:
