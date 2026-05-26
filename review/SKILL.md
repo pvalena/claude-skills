@@ -2,7 +2,7 @@
 name: Code Review
 description: Complete workflow for reviewing patches/commits, documenting findings, and formatting results
 author: pvalena
-version: 3.2.0
+version: 3.3.0
 tags: [code-review, documentation, formatting, security, quality, verification, false-positives]
 ---
 
@@ -199,7 +199,7 @@ access to the original conversation. It must contain enough detail that every
 conclusion is independently verifiable.
 
 **Header**: Start with a one-line summary (PR number, title, commit count), then list
-all source files read during review and verification.
+all source files read during review.
 
 **Structure** -- for each issue, use a `== Issue N: title ==` header and include:
 
@@ -223,12 +223,12 @@ but "leaks one FILE stream and one fd per call, exhausting fd table
 after N invocations." Include what the user would see if applicable
 (error messages, silent failures, data corruption).
 
-Fix verification:
-Why the suggested fix is correct. Confirm it doesn't introduce new
-issues (e.g., doesn't mask errors from subsequent operations, doesn't
-use-after-free, scoping is correct for the language standard). Note
-any caveats (e.g., "fix requires restructuring surrounding code, so
-no draft diff included").
+Fix assessment:
+Why the suggested fix looks correct based on reading the code. Check
+that it doesn't introduce new issues (e.g., doesn't mask errors from
+subsequent operations, doesn't use-after-free, scoping is appropriate
+for the language standard). Note any caveats (e.g., "fix requires
+restructuring surrounding code, so no draft diff included").
 ```
 
 When the issue involves platform-dependent behavior, verify which platforms
@@ -435,7 +435,7 @@ reader to reconstruct the exact same analysis.
 
 **Per issue**: Discovery (what drew attention) -> Source trace (what was followed and
 what was found at each step) -> Consequence (what breaks in practice) -> Fix
-verification (why the fix is correct and doesn't introduce new problems).
+assessment (why the fix looks correct and doesn't introduce new problems).
 
 See the reasoning file format in Phase 1, Step 7 for the exact structure.
 
@@ -474,8 +474,8 @@ so the leak is not practically harmful. However, it is a correctness
 defect and would become a real problem if the function were called in
 a loop.
 
-Fix verification:
-Adding fclose(fp) before "return rc" on line 129 is correct. The fp
+Fix assessment:
+Adding fclose(fp) before "return rc" on line 129 looks correct. The fp
 is not used after the while loop. free(line) must come before
 fclose(fp) because getline's buffer is independent of the stream.
 The fix does not affect the return value (rc is already computed).
@@ -530,7 +530,7 @@ done
 - [ ] No severity labels on issues
 - [ ] No "Review Result" summary section
 - [ ] Each issue has location (file, function, lines)
-- [ ] Every bug verified by reading actual source code
+- [ ] Every bug confirmed present by reading actual source code
 - [ ] Draft fix or "not straightforward" explanation for each issue
 - [ ] Ends with reasoning file link (when issues found)
 - [ ] No repeated information between intro, issues, and link
@@ -539,7 +539,7 @@ done
 **Reasoning file:**
 - [ ] Only exists for reviews WITH issues
 - [ ] Header lists all source files read during review
-- [ ] Each issue has Discovery, Source trace, Consequence, Fix verification
+- [ ] Each issue has Discovery, Source trace, Consequence, Fix assessment
 - [ ] API semantics traced into implementations (not assumed from docs)
 - [ ] Platform-dependent issues verified via build config
 - [ ] Specific line numbers referenced throughout
