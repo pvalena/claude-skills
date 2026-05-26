@@ -9,8 +9,8 @@ tags: [code-review, documentation, formatting, security, quality, verification, 
 # Code Review Skill
 
 **Purpose**: Complete workflow for reviewing code changes (patches, commits, merge requests),
-documenting findings with technical precision, verifying correctness, drafting fixes, and producing
-deep technical reasoning.
+documenting findings with technical precision, assessing correctness by reading source code,
+drafting fixes, and producing deep technical reasoning.
 
 ## When to Use This Skill
 
@@ -33,8 +33,15 @@ misleading -- always read the full function context using `git show BRANCH:path/
 **Draft fixes where straightforward**: When a fix is obvious and localized, include a diff patch in
 the review. When it's not, explain why -- that's equally valuable.
 
+**Honest claims**: Say only what you actually did. Reading code is not "verifying." Comparing
+against training knowledge is not "checking the spec." Use precise language: "read the source
+and found no issues", "traced the logic", "looks consistent with existing in-tree code" -- not
+"verified correct" or "confirmed safe." Reserve "verified" for concrete actions like checking
+a commit exists with `git log --grep`, or confirming a file is present with `git show`. If you
+assessed something by reading and reasoning (which is what code review is), say that.
+
 **Deep reasoning**: Reasoning files should walk through the discovery and analysis step by step, so
-a reader can independently verify the conclusion.
+a reader can independently reproduce the analysis.
 
 ---
 
@@ -167,6 +174,19 @@ Only include this link when issues were found (i.e., when a reasoning file exist
 No issues found.
 ```
 
+After "No issues found", briefly describe what was read and what you looked for.
+Use honest language about what you did:
+- GOOD: "Read all changed source files. Traced error paths -- no leaks spotted."
+- GOOD: "Referenced commits checked via git log -- both exist. Read all 9 usage
+  sites of the constant -- no issues spotted."
+- GOOD: "Code looks consistent with existing in-tree patterns."
+- BAD: "Verified correct." "Confirmed safe." "All paths validated."
+- BAD: "Verified against the TPM 2.0 spec." (unless you actually fetched the spec)
+- BAD: "Verified all scenarios." (unless you ran tests)
+
+You read code and applied judgment. That is valuable but it is not the same as
+compiling, running tests, or looking up spec documents. Do not claim otherwise.
+
 #### 7. Create Reasoning File (Only If Issues Found)
 
 **File naming**: `reviews/IDENTIFIER_reasoning.txt`
@@ -274,9 +294,9 @@ or any other indicator of AI-generated code, apply additional scrutiny:
    while being subtly wrong. The standard is the same as any other code: verify
    in the actual source, not by reading the diff and nodding along.
 
-If the code passes all these checks, note in the Review Result that AI-assistance
-was declared and the code was verified. Do not penalize correct code for being
-AI-assisted.
+If the code passes all these checks, note in the review intro that AI-assistance
+was declared and heightened scrutiny was applied. Do not penalize code that looks
+correct for being AI-assisted.
 
 #### For Clean Reviews
 
@@ -323,7 +343,6 @@ if (!fd) {
 
 1. Add it to the review file
 2. Add it to the reasoning file
-3. Update the Review Result summary
 
 ---
 
@@ -395,15 +414,15 @@ first draft. Phase 4 strengthens it by:
 4. Verifying that suggested fixes are correct and don't introduce new issues
 5. Adding the verification results to the reasoning file
 
-#### Verification checklist for each issue
+#### Checklist for each issue
 
 - [ ] Re-read the source file at the branch; confirm the bug exists as described
 - [ ] Check for context that might invalidate the finding (guards, cleanup code, etc.)
 - [ ] If the issue involves API semantics, trace into the implementation and cite lines
 - [ ] If the issue is platform-dependent, check build config (Makefiles, module defs)
-- [ ] If the issue involves header/guard conflicts, verify both files exist in-tree
-- [ ] Verify the suggested fix doesn't mask real errors or introduce new bugs
-- [ ] Verify fix scoping/types are correct for the codebase's language standard
+- [ ] If the issue involves header/guard conflicts, check both files exist in-tree
+- [ ] Read the suggested fix for correctness (doesn't mask errors, no use-after-free)
+- [ ] Check fix scoping/types are appropriate for the codebase's language standard
 
 #### Required Depth in Reasoning Files
 
@@ -641,16 +660,32 @@ BAD:  "Minor: Variable name 'x' is not descriptive."
 GOOD: Don't report this at all. Only report issues that affect correctness.
 ```
 
+**Overstating what was done:**
+```
+BAD:  "Verified all scenarios." "Confirmed correct against the spec."
+      "All error paths validated." "Memory management verified."
+GOOD: "Traced the logic for several scenarios -- no issues spotted."
+      "Looks consistent with existing in-tree TPM code (not independently
+      checked against the spec)." "Read all error paths -- no leaks spotted."
+You read code. You did not compile it, run tests, or consult external specs.
+```
+
 ---
 
 ## Version History
 
+- **3.3.0** (2026-05-26): Added "Honest claims" core principle: say only what you
+  actually did; reading code is not "verifying", comparing with training knowledge
+  is not "checking the spec." Added clean review language guidance with good/bad
+  examples. Added "Overstating what was done" anti-pattern. Softened verification
+  checklist language. Removed stale "Review Result" references. Based on feedback
+  that clean reviews were claiming verification that was not actually performed.
 - **3.2.0** (2026-05-20): Leaner review format: removed severity labels, removed
   "Review Result" section (no intro-content-conclusion repetition), reasoning link
   stands alone at the end. Expanded reasoning file requirements: full verification
   trail (Discovery, Source trace, Consequence, Fix verification), header listing all
   source files read, API semantics must be traced into implementations, platform
-  behavior verified via build config. Merged Phase 4 into a verification-focused
+  behavior checked via build config. Merged Phase 4 into a verification-focused
   pass. Added 4 new bug patterns: const env mutation, grub_strtol error checking,
   platform-dependent type sizes, leaked grub_errno. Based on PR124/PR126 reviews.
 - **3.1.0** (2026-05-14): Added commit message verification step (Phase 1, step 2).
