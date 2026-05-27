@@ -107,11 +107,22 @@ earlier in the function, related code in the same file.
 - Type mismatches: byte count vs element count, wrong enum, incorrect casts
 - Documentation/code mismatches: docs say one thing, code does another
 
+**For non-C changes, also check:**
+- CI/YAML: incorrect job classifications or stage references, broken include paths,
+  wrong rule conditions, tests moved between categories without updating type
+- Shell scripts: unquoted variables, missing error handling with `set -e`, cleanup
+  paths that skip files, incorrect guards (`test -n` vs `test -z`)
+- Drivers/hardware: device lifecycle (init must be fully reversible on failure),
+  DMA safety (device must be stopped before freeing buffers it can write to),
+  ring buffer management (descriptor reuse, avail/used ring updates),
+  platform-dependent behavior (check actual implementations, not assumptions)
+
 **What NOT to report:**
 - Style preferences (naming, formatting, comment style)
 - Optimization suggestions (unless correctness is affected)
 - Alternative implementations (unless current is demonstrably wrong)
 - Theoretical issues without concrete impact
+- Pre-existing bugs on the base branch not introduced by this patch
 
 #### 6. Create Review File
 
@@ -122,6 +133,9 @@ earlier in the function, related code in the same file.
 - Short intro is fine (commit count, brief scope, commit hashes for reference).
 - The main content is the issues themselves. Each issue should explain the bug, show
   relevant code, and include a draft fix (or explain why one isn't included).
+- Keep issue descriptions concise: state the bug, its consequence, and the fix. The full
+  analysis trail (macro expansions, implementation internals, caller tracing) belongs in
+  the reasoning file -- do not duplicate it in the review.
 - Do NOT include severity labels on issues.
 - Do NOT include a "Review Result" summary section -- it just repeats the issues.
 - End with a link to the reasoning file (when issues were found).
@@ -341,7 +355,7 @@ into the implementation yourself.
 Re-read the diff and source code looking for anything missed:
 - Trace all error paths for resource leaks
 - Check all pointer dereferences for NULL safety
-- Verify return value semantics match caller expectations
+- Check return value semantics match caller expectations
 - Look for documentation/code mismatches
 
 #### Common False Positive Patterns
@@ -438,19 +452,19 @@ and their implications.]
 
 ---
 
-### Phase 4: Verify and Deepen Reasoning
+### Phase 4: Deepen Reasoning
 
-**Goal**: After the initial review, re-read actual source code to verify every finding
-and ensure reasoning files contain the full verification trail.
+**Goal**: Ensure reasoning files contain the full analysis trail with enough depth
+for independent reproduction.
 
-This is a separate pass from Phase 1. The reasoning file written during Phase 1 is a
-first draft. Phase 4 strengthens it by:
+This is not a separate re-read pass (that happens in Phase 2). Phase 4 is about
+strengthening the reasoning file's depth and clarity:
 
-1. Re-reading each source file cited in the reasoning to confirm findings
-2. Tracing API semantics into their implementations (not just trusting docs/comments)
-3. Checking platform-dependent behavior (module enable flags, type sizes, etc.)
-4. Verifying that suggested fixes are correct and don't introduce new issues
-5. Adding the verification results to the reasoning file
+1. Filling in gaps: if a source trace skips steps, add the intermediate reasoning
+2. Adding cross-references: cite similar patterns elsewhere in the codebase
+3. Checking that platform/API claims cite actual source lines (not just assertions)
+4. Assessing suggested fixes for correctness by reading the surrounding code
+5. Ensuring the reasoning file is self-contained (another reader needs no context)
 
 #### Checklist for each issue
 
@@ -712,12 +726,18 @@ You read code. You did not compile it, run tests, or consult external specs.
 
 ## Version History
 
+- **3.3.1** (2026-05-27): Clarified review file brevity: issue descriptions should state
+  bug/consequence/fix concisely; full analysis belongs in the reasoning file only.
 - **3.3.0** (2026-05-26): Added "Honest claims" core principle: say only what you
   actually did; reading code is not "verifying", comparing with training knowledge
   is not "checking the spec." Added clean review language guidance with good/bad
-  examples. Added "Overstating what was done" anti-pattern. Softened verification
-  checklist language. Removed stale "Review Result" references. Based on feedback
-  that clean reviews were claiming verification that was not actually performed.
+  examples. Added "Overstating what was done" anti-pattern. Added Agent-Delegated
+  Reviews section (spec/platform/API claim categories, 5-step checking process,
+  PR133 ieee1275 false positive example). Added pre-existing bugs to "What NOT to
+  report." Added non-C review targets (CI/YAML, shell, drivers). Renamed "Fix
+  verification" to "Fix assessment" throughout. Clarified Phase 4 as reasoning
+  depth pass (not a duplicate re-read). Softened remaining "verify" language in
+  Phases 2/4. Based on feedback from PR127-PR134 review cycle.
 - **3.2.0** (2026-05-20): Leaner review format: removed severity labels, removed
   "Review Result" section (no intro-content-conclusion repetition), reasoning link
   stands alone at the end. Expanded reasoning file requirements: full verification
