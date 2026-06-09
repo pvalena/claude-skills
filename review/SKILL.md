@@ -789,12 +789,9 @@ You read code. You did not compile it, run tests, or consult external specs.
   headings. Updated reasoning file format to require Discovery/Analysis/Step-by-step/
   Consequence sections. Added parallel review guidance. Removed unused sections
   (CI/CD integration, customization options). Updated examples from actual reviews.
-- **2.1.0** (2026-04-10): Added Phase 0 (Perform Code Review) with checklist and bug
-  patterns. Added verification examples. Added common false positive patterns.
-- **2.0.0**: Added verification phase, completeness checks, false positive prevention.
-- **1.0.0**: Initial version with basic review and formatting workflow.
-
----
+- **2.1.0** (2026-04-10): Added Phase 0 with checklist, verification examples, false positive patterns.
+- **2.0.0**: Verification phase, completeness checks, false positive prevention.
+- **1.0.0**: Initial version.
 
 ## See Also
 

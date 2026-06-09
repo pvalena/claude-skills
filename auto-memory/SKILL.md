@@ -487,8 +487,6 @@ command-2  # What it does
 - **refresh-docs** - For coordinated updates across CLAUDE.md, MEMORY.md, and docs/*.md
 - **memory-dump** - For session-specific context dumps (model transitions, session restoration)
 - **create-skill** - For capturing reusable workflows as global skills
-- **init** - For initializing a new CLAUDE.md file (complements auto-memory for the other tier)
-
 ---
 
 **Remember**: MEMORY.md is working memory, not permanent storage. If you would not look at the information next

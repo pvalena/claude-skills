@@ -747,18 +747,13 @@ ls reviews/*.md | wc -l  # Compare with documented counts
 
 ---
 
-## Integration with Other Skills
+## Version History
 
-This skill complements:
-- **Code review skills**: After review milestones, update docs
-- **Project management**: After phase completion, refresh docs
-- **Repository maintenance**: Regular doc refresh cycles
+- **1.0.0** (2026-04-11): Initial version with update, verify, and quality check phases
+- **1.1.0** (2026-04-13): Added garbage collection phase, target sizes, and evaluation framework
 
-**When to combine**:
-- After completing review phase → use review skill, then refresh-docs
-- After major refactoring → update code, then refresh-docs
-- Monthly maintenance → audit repository state, then refresh-docs
+## See Also
 
----
-
-**Last updated**: 2026-04-10
+- **auto-memory** - For creating and maintaining project-level MEMORY.md files
+- **review** - After review milestones, use refresh-docs to update project documentation
+- **create-skill** - For capturing reusable workflows as global skills
