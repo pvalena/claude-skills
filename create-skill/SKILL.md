@@ -216,7 +216,18 @@ Add as applicable:
 - [ ] All sections properly nested (H2 for major, H3 for phases, H4 for steps)
 - [ ] Version history included
 
-#### 2. Test the Skill
+#### 2. Validate All Skills
+
+Run the validation script from the skills root directory to check all skills against quality
+standards (frontmatter, required sections, sizing, line width, cross-references):
+
+```bash
+~/.claude/skills/create-skill/validate_skills.sh ~/.claude/skills
+```
+
+Fix any errors before deploying. Warnings are advisory.
+
+#### 3. Test the Skill
 
 Actually use it:
 - Follow your own instructions
