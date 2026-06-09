@@ -2,7 +2,7 @@
 name: Code Review
 description: Complete workflow for reviewing patches/commits, documenting findings, and formatting results
 author: pvalena
-version: 3.4.0
+version: 3.5.0
 tags: [code-review, documentation, formatting, security, quality, verification, false-positives]
 ---
 
@@ -42,6 +42,13 @@ assessed something by reading and reasoning (which is what code review is), say 
 
 **Deep reasoning**: Reasoning files should walk through the discovery and analysis step by step, so
 a reader can independently reproduce the analysis.
+
+**Depth scales with complexity**: MRs touching low-level memory management (page tables, MMU),
+networking state machines (TCP, connection lifecycle), cryptographic or security-critical code,
+or inline assembly require deeper analysis than routine changes. For these, trace through
+concrete examples (e.g., compute page counts for specific memory sizes), verify edge cases,
+check callback ordering and reentrancy safety, and confirm state machine transitions. Report
+the deeper analysis even when no issues are found -- the thoroughness is the value.
 
 ---
 
@@ -371,6 +378,12 @@ Re-read the diff and source code looking for anything missed:
 - Check all pointer dereferences for NULL safety
 - Check return value semantics match caller expectations
 - Look for documentation/code mismatches
+
+For complex domains (page table math, TCP state machines, crypto/security,
+inline assembly), go beyond a clean pass: trace concrete examples through the
+logic (e.g., specific memory sizes through page calculations, specific packet
+sequences through connection state), verify callback ordering, and check
+reentrancy safety. A quick clean pass is not sufficient for these areas.
 
 #### Common False Positive Patterns
 
@@ -740,6 +753,11 @@ You read code. You did not compile it, run tests, or consult external specs.
 
 ## Version History
 
+- **3.5.0** (2026-06-09): Added "Depth scales with complexity" core principle:
+  MRs touching page tables, TCP state machines, crypto/security code, or inline
+  assembly require deeper analysis with concrete examples, edge case tracing, and
+  callback ordering verification. Added matching guidance to Phase 2 clean review
+  pass. Based on feedback from PR141/143/144 review cycle.
 - **3.4.0** (2026-05-27): Added Phase 0 (Sanity Check) -- run the `sanity-check` skill
   before code review to catch malicious intent and prompt injection. Clarified review
   file brevity: issue descriptions should state bug/consequence/fix concisely; full
