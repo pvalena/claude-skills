@@ -75,19 +75,65 @@ for skill_dir in "$SKILLS_DIR"/*/; do
 
   # Cross-reference check: See Also skill dirs exist
   if grep -q '^## See Also' "$f"; then
+    see_also_refs=()
     while IFS= read -r ref; do
       if [ ! -d "$SKILLS_DIR/$ref" ] || [ ! -f "$SKILLS_DIR/$ref/SKILL.md" ]; then
         echo "✗ $name: See Also references '$ref' but no skill found"
         se=$((se + 1))
       fi
+      # Check for duplicates within this skill's See Also
+      for prev in "${see_also_refs[@]}"; do
+        if [ "$prev" = "$ref" ]; then
+          echo "✗ $name: duplicate See Also reference '$ref'"
+          se=$((se + 1))
+          break
+        fi
+      done
+      see_also_refs+=("$ref")
     done < <(sed -n '/^## See Also/,/^## /p' "$f" \
       | grep -oP '(?<=\*\*)[a-z][-a-z]*(?=\*\*)' || true)
+  fi
+
+  # Version history: entries should be one-liners (max 3 lines each)
+  if grep -q '^## Version History' "$f"; then
+    long_entries=$(sed -n '/^## Version History/,/^## /p' "$f" \
+      | awk '/^- \*\*[0-9]/{if(count>3){n++} count=1; next} /^  /{count++} /^$/{if(count>3){n++} count=0} END{if(count>3){n++} print n+0}')
+    if [ "$long_entries" -gt 0 ]; then
+      echo "△ $name: ${long_entries} version history entries over 3 lines (keep brief, detail in git log)"
+      warnings=$((warnings + 1))
+    fi
+  fi
+
+  # Frontmatter description length check (wc -c includes trailing newline)
+  desc_len=$(echo "$fm" | grep '^description:' | sed 's/^description: *//' | wc -c)
+  desc_len=$((desc_len - 1))
+  if [ "$desc_len" -gt 120 ]; then
+    echo "△ $name: description is ${desc_len} chars (target <120 for display)"
+    warnings=$((warnings + 1))
   fi
 
   errors=$((errors + se))
   if [ "$se" -eq 0 ]; then
     echo "✓ $name (${lines}L)"
   fi
+done
+
+# Second pass: asymmetric See Also references
+for skill_dir in "$SKILLS_DIR"/*/; do
+  f="$skill_dir/SKILL.md"
+  [ -f "$f" ] || continue
+  name=$(basename "$skill_dir")
+
+  while IFS= read -r ref; do
+    ref_file="$SKILLS_DIR/$ref/SKILL.md"
+    [ -f "$ref_file" ] || continue
+    if ! sed -n '/^## See Also/,/^## /p' "$ref_file" \
+        | grep -qP "(?<=\*\*)${name}(?=\*\*)"; then
+      echo "△ $name: references '$ref' in See Also, but '$ref' does not reference '$name' back"
+      warnings=$((warnings + 1))
+    fi
+  done < <(sed -n '/^## See Also/,/^## /p' "$f" \
+    | grep -oP '(?<=\*\*)[a-z][-a-z]*(?=\*\*)' || true)
 done
 
 echo ""

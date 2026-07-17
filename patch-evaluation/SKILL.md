@@ -3,14 +3,18 @@ name: Patch Evaluation
 description: Evaluate patch sets against upstream — classify, dedup, inspect, and assess for backport/forwardport
 author: pvalena
 version: 1.0.0
-tags: [patches, evaluation, upstream, backport, deduplication, code-review, verification]
+tags: [patches, evaluation, upstream, backport, deduplication, code-review, verification, experimental]
 ---
 
-# Patch Evaluation Skill
+# Patch Evaluation Skill (Experimental)
 
 **Purpose**: Systematically evaluate a set of patches against an upstream codebase to determine
 which carry changes not yet merged, group them for review, and assess whether manual fixing is
 worthwhile. Designed for backport, forwardport, and upstream submission workflows.
+
+> **Experimental**: Developed against GRUB2 mailing list patch analysis.
+> Conventions (FAILED.patch, branch naming, classified.txt) may need
+> adaptation for other upstream workflows.
 
 ## When to Use This Skill
 

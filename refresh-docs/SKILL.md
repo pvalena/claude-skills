@@ -2,7 +2,7 @@
 name: Documentation Refresh
 description: Systematic workflow for updating, synchronizing, verifying, and garbage-collecting project documentation
 author: pvalena
-version: 1.1.0
+version: 1.2.0
 tags: [documentation, maintenance, consistency, verification, repository-state, garbage-collection]
 ---
 
@@ -31,8 +31,8 @@ elsewhere.
 
 **Verification**: After updates, verify all cross-references and numbers match reality.
 
-**Distillation**: Each document has a specific purpose. CLAUDE.md = essentials only. MEMORY.md = complete
-reference. docs/*.md = detailed procedures.
+**Distillation**: Each document has a specific purpose and size target.
+See the **auto-memory** skill for the full documentation hierarchy.
 
 ---
 
@@ -104,74 +104,17 @@ These contain procedures, examples, and detailed workflows.
 
 #### 2. Update Repository Memory (MEMORY.md)
 
-This is the complete reference for current state and workflows.
-
-**What to update**:
-- **Current Status section**: All numbers (open, closed, active authors)
-- **Key Files section**: File counts and descriptions
-- **Recent Work section**: Add new completed items
-- **Statistics section**: Update all metrics
-- **Workflow sections**: Add new workflows, update existing
-- **Last updated date**
-
-**Structure**:
-```markdown
-# Repository Memory - Current State
-
-**Last updated**: YYYY-MM-DD
-
-## Current Status
-- **Total tracked**: XX
-- **Open**: XX
-- **Closed**: XX
-- **Active authors**: XX
-
-## Key Files
-[Descriptions with current counts]
-
-## [Workflow Sections]
-[Complete procedures]
-
-## Recent Work (YYYY-MM-DD)
-[List of completed items]
-
-## Statistics
-### Current (YYYY-MM-DD)
-[All current metrics]
-```
-
-**Important**:
-- MEMORY.md should be self-contained
-- Include complete workflows (not just references)
-- Update ALL statistics, not just some
-- Add date to section headers when updating
+Update all sections: Current Status, Key Files, Workflows, Recent
+Work, Statistics, and "Last updated" date. Update ALL statistics,
+not just some. See the **auto-memory** skill for MEMORY.md structure
+and maintenance guidelines.
 
 #### 3. Update Repository Instructions (CLAUDE.md)
 
-This should contain **bare essentials only** - no detailed procedures.
-
-**What to update**:
-- **Completed Work Summary**: Add new phases, update counts
-- **Core Principles**: Add new principles learned
-- **File Organization**: Update counts, add new sections
-- **Restrictions and Best Practices**: Add new learnings
-- **Last updated date**
-
-**What NOT to include**:
-- Detailed workflows (→ MEMORY.md)
-- Procedural steps (→ docs/*.md)
-- Examples and commands (→ docs/*.md)
-- Historical details (→ MEMORY.md)
-
-**Keep it concise**:
-```markdown
-### Phase X: Name (STATUS)
-- **Key metrics**: Brief summary
-- **Quality**: Brief achievement summary
-- **Key files**: List only
-```
-
-**Typical size**: 100-150 lines (distilled essentials)
+Bare essentials only — no detailed procedures. Update: Completed Work
+Summary, Core Principles, File Organization, Restrictions. Keep
+concise (~100-150 lines). Detailed workflows belong in MEMORY.md,
+procedures in docs/*.md.
 
 #### 4. Update Tracking Documents
 
@@ -270,54 +213,10 @@ done
 
 ### Phase 4: Garbage Collection
 
-**Goal**: Remove obsolete, redundant, or overly detailed information to keep documentation focused and maintainable.
-
-**When to garbage collect**:
-- Documentation files becoming too large (>500 lines for MEMORY.md, >200 for CLAUDE.md)
-- Redundant information across multiple files
-- Historical data that's not useful for future workflow
-- Overly detailed explanations better suited for other docs
-
-#### Evaluation Framework
-
-**The Key Question**: "Will this information help someone work in this repository in the future?"
-
-**Keep if**:
-- ✓ Needed for daily workflow (commands, procedures)
-- ✓ Critical context (base commits, repo structure)
-- ✓ Real examples with lessons learned
-- ✓ Quick reference information
-- ✓ Current state and statistics
-
-**Remove if**:
-- ✗ Historical data not needed for workflow
-- ✗ Information already in another doc (check CLAUDE.md first)
-- ✗ Overly detailed explanations (→ move to docs/*.md)
-- ✗ Long tables of closed/completed items
-- ✗ Redundant descriptions
-- ✗ "Recent work" details older than 1-2 cycles
-
-#### Process
-
-1. Check file sizes: `wc -l CLAUDE.md MEMORY.md docs/*.md`
-2. For each section, ask: "Will this help someone work here in the
-   future?" If no, remove it.
-3. Common removal candidates: historical tables of closed items,
-   "recent work" older than 1-2 cycles, file descriptions duplicated
-   across CLAUDE.md and MEMORY.md, verbose explanations that can be
-   condensed to one line.
-4. After removal, verify document still works standalone and
-   cross-references aren't broken.
-5. Document the reduction in the commit message.
-
-#### Target Sizes
-
-- **CLAUDE.md**: 100-150 lines (bare essentials)
-- **MEMORY.md**: 250-350 lines (working knowledge)
-- **docs/*.md**: 300-500 lines (detailed procedures)
-
-**Red flags**: CLAUDE.md > 200, MEMORY.md > 500, or duplication
-between them.
+If any file exceeds its target size (CLAUDE.md > 200, MEMORY.md > 500)
+or contains information duplicated across files, trim it. See the
+**auto-memory** skill (Phase 5: Garbage Collection) for the full
+evaluation framework, keep/remove criteria, and target sizes.
 
 ### Phase 5: Quality Checks
 
@@ -359,30 +258,10 @@ Ensure consistent naming:
 
 #### 4. Completeness
 
-**CLAUDE.md checklist**:
-- [ ] Repository purpose stated
-- [ ] All phases summarized (with status)
-- [ ] Core principles listed
-- [ ] File organization overview
-- [ ] Restrictions and best practices
-- [ ] Key documentation pointers
-- [ ] Last updated date
-- [ ] Under 150 lines (distilled)
-
-**MEMORY.md checklist**:
-- [ ] Current status (all metrics current)
-- [ ] Key files (with counts and descriptions)
-- [ ] Complete workflows (self-contained)
-- [ ] Recent work (dated)
-- [ ] Statistics (current + historical)
-- [ ] Last updated date
-
-**docs/*.md checklist**:
-- [ ] Detailed procedures (step-by-step)
-- [ ] Examples with current data
-- [ ] Commands and code blocks
-- [ ] Quality checklists
-- [ ] Last updated date
+Verify each file covers its required sections. See the **auto-memory**
+skill for CLAUDE.md and MEMORY.md structure checklists. For docs/*.md:
+detailed procedures, examples with current data, commands, and last
+updated date.
 
 ---
 
@@ -519,16 +398,7 @@ done
 
 ## Quick Reference
 
-**Documentation hierarchy**:
-1. **CLAUDE.md**: Essentials only (~120 lines)
-2. **MEMORY.md**: Complete reference (workflows + state)
-3. **docs/*.md**: Detailed procedures (examples + commands)
-
-**Update order**:
-1. docs/*.md (detailed procedures)
-2. MEMORY.md (complete reference)
-3. CLAUDE.md (distilled essentials)
-4. Tracking docs (if applicable)
+**Update order**: docs/*.md → MEMORY.md → CLAUDE.md → tracking docs.
 
 **Essential commands**:
 ```bash
@@ -557,7 +427,8 @@ ls reviews/*.md | wc -l  # Compare with documented counts
 ## Version History
 
 - **1.0.0** (2026-04-11): Initial version with update, verify, and quality check phases
-- **1.1.0** (2026-04-13): Added garbage collection phase, target sizes, and evaluation framework
+- **1.2.0** (2026-07-18): Deduped with auto-memory skill
+- **1.1.0** (2026-04-13): Garbage collection phase
 
 ## See Also
 
