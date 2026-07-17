@@ -297,160 +297,27 @@ done
 - ✗ Redundant descriptions
 - ✗ "Recent work" details older than 1-2 cycles
 
-#### Garbage Collection Process
+#### Process
 
-**1. Analyze current state**:
-```bash
-# Check file sizes
-wc -l CLAUDE.md MEMORY.md docs/*.md
+1. Check file sizes: `wc -l CLAUDE.md MEMORY.md docs/*.md`
+2. For each section, ask: "Will this help someone work here in the
+   future?" If no, remove it.
+3. Common removal candidates: historical tables of closed items,
+   "recent work" older than 1-2 cycles, file descriptions duplicated
+   across CLAUDE.md and MEMORY.md, verbose explanations that can be
+   condensed to one line.
+4. After removal, verify document still works standalone and
+   cross-references aren't broken.
+5. Document the reduction in the commit message.
 
-# Identify potential bloat
-echo "Files over target size:"
-[ $(wc -l < CLAUDE.md) -gt 150 ] && echo "  CLAUDE.md: $(wc -l < CLAUDE.md) lines (target: ~120)"
-[ $(wc -l < MEMORY.md) -gt 350 ] && echo "  MEMORY.md: $(wc -l < MEMORY.md) lines (target: ~300)"
-```
+#### Target Sizes
 
-**2. Identify candidates for removal**:
-
-**In MEMORY.md**:
-- Long tables (e.g., 15+ rows of closed items)
-- "Authors completely removed" lists
-- Detailed "Recent Work" older than current cycle
-- Redundant file descriptions (if in CLAUDE.md)
-- Overly verbose explanations of workflows
-- Historical statistics older than 2-3 cycles
-
-**In CLAUDE.md**:
-- Detailed workflow steps (→ MEMORY.md or docs/*.md)
-- Long code examples (→ docs/*.md)
-- Duplicate classification explanations (→ relevant doc)
-- Statistics tables (keep summary only)
-- Process details (→ docs/*.md)
-
-**In docs/*.md**:
-- Outdated examples with old data
-- Redundant sections covered in other docs
-- Historical context not needed for procedures
-
-**3. Apply garbage collection**:
-
-**Example - MEMORY.md trim (602 → 279 lines, 53% reduction)**:
-
-```markdown
-REMOVED:
-- Long table of 15 closed MRs (historical, not needed)
-  ✗ | MR | Title | Author |
-  ✗ |----|-------|--------|
-  ✗ | !19 | ... | ... |
-  ✗ | !26 | ... | ... |
-  ✗ [13 more rows]
-
-- "Authors completely removed" list (not useful for future work)
-  ✗ - Leo Sandoval (all 4 MRs closed)
-  ✗ - khaalid cali (!44 only)
-  ✗ [3 more items]
-
-- Detailed "Recent Work" descriptions (historical record)
-  ✗ 1. ✅ Verified MR !42 review accuracy...
-  ✗ 2. ✅ Fixed MR !39 review completeness...
-  ✗ [10 more items]
-
-- Redundant file organization (already in CLAUDE.md)
-  ✗ ### Root Directory
-  ✗ - `duplicates.txt`: List of duplicate branches (65 entries)
-  ✗ - `authors.txt`: List of unique authors...
-  ✗ [20 more lines]
-
-- Overly detailed workflow explanations
-  ✗ **IMPORTANT**: Before documenting any bug, you MUST verify...
-  ✗ [5 paragraphs explaining why]
-  → Condensed to: **Critical principle**: NEVER report a bug without verifying...
-
-KEPT:
-- Current status (quick numbers) ✓
-- Quick file reference (WHERE things are) ✓
-- Complete review workflow (essential for work) ✓
-- GitLab config (repo-specific commands) ✓
-- Important review cases (real examples with lessons) ✓
-- Quick reference (essential commands) ✓
-- Statistics (current + brief historical) ✓
-```
-
-**4. Restructure if needed**:
-
-After removal, reorganize to maintain flow:
-```markdown
-# Before: Scattered, verbose (602 lines)
-## Current Status
-[50 lines of detailed numbers and descriptions]
-## Key Files
-[80 lines of file descriptions]
-## Recent Work (2026-03-27)
-[60 lines of completed items]
-## Closed MRs Removed
-[50 lines table]
-## Review Workflow
-[200 lines]
-
-# After: Focused, organized (279 lines)
-## Current Status
-[Brief summary: 15 lines]
-## Quick File Reference
-[Essential files only: 20 lines]
-## Review Workflow
-[Complete but concise: 130 lines]
-## Quick Reference
-[Commands: 20 lines]
-## Statistics
-[Current + historical: 15 lines]
-```
-
-**5. Document reduction**:
-
-Add note to commit or changelog:
-```
-Trimmed MEMORY.md: 602 → 279 lines (53% reduction)
-
-Removed:
-- Historical tables (closed MRs, removed authors)
-- Redundant file descriptions (already in CLAUDE.md)
-- Detailed recent work log (historical)
-- Verbose explanations (condensed to essentials)
-
-Kept:
-- Current state and workflows
-- Essential commands and examples
-- Real cases with lessons learned
-```
-
-#### Garbage Collection Checklist
-
-Before removing content:
-- [ ] Verified information not needed for future workflow
-- [ ] Checked if information exists elsewhere (CLAUDE.md, docs/*.md)
-- [ ] Preserved essential commands and examples
-- [ ] Kept lessons learned from important cases
-- [ ] Maintained document structure and flow
-- [ ] Updated cross-references if needed
-
-After garbage collection:
-- [ ] File size reduced to target range
-- [ ] No broken references or links
-- [ ] Document still makes sense standalone
-- [ ] All essential workflow information retained
-- [ ] Verified no duplication across files
-
-#### Target Sizes After Garbage Collection
-
-**Ideal ranges**:
 - **CLAUDE.md**: 100-150 lines (bare essentials)
 - **MEMORY.md**: 250-350 lines (working knowledge)
 - **docs/*.md**: 300-500 lines (detailed procedures)
 
-**Red flags** (time to garbage collect):
-- CLAUDE.md > 200 lines → Too detailed, move to MEMORY.md
-- MEMORY.md > 500 lines → Too verbose, contains historical data
-- Duplication between CLAUDE.md and MEMORY.md → Consolidate
+**Red flags**: CLAUDE.md > 200, MEMORY.md > 500, or duplication
+between them.
 
 ### Phase 5: Quality Checks
 
@@ -519,76 +386,16 @@ Ensure consistent naming:
 
 ---
 
-## Common Patterns
+## Common Refresh Triggers
 
-### Pattern 1: Project Milestone Reached
+| Trigger | Update |
+|---------|--------|
+| Milestone reached | Add to CLAUDE.md summary, update stats everywhere |
+| Statistics changed | Update MEMORY.md status, CLAUDE.md phase summaries, docs, verify consistency |
+| New workflow | Add to MEMORY.md, add principle to CLAUDE.md if foundational |
+| File org changed | Update CLAUDE.md file org, MEMORY.md key files, docs structure |
 
-**Trigger**: Completed a major phase (e.g., code review phase done)
-
-**Updates needed**:
-1. Add phase to "Completed Work Summary" in CLAUDE.md
-2. Update statistics in all files
-3. Add workflow to MEMORY.md if new
-4. Update "Recent Work" in MEMORY.md
-5. Update dates everywhere
-
-**Example**:
-```markdown
-# CLAUDE.md - Add to Completed Work Summary
-### Phase 4: Code Review & Quality Assurance (COMPLETED)
-- **Reviews**: 50 complete (.md) + 22 reasoning files (_reasoning.txt)
-- **Quality**: Zero false positives, all commits reviewed, 120 char width
-- **Key files**: `reviews/*.md`, `reviews/*_reasoning.txt`, `docs/REVIEW_PROCESS.md`
-```
-
-### Pattern 2: Statistics Changed
-
-**Trigger**: MRs closed, branches merged, counts changed
-
-**Updates needed**:
-1. Update "Current Status" in MEMORY.md
-2. Update phase summaries in CLAUDE.md
-3. Update statistics in docs/*.md
-4. Update tracking documents
-5. Verify consistency across all files
-
-**Workflow**:
-```bash
-# 1. Get current numbers
-open_count=$(wc -l < data/open.txt)
-closed_count=$(wc -l < data/closed.txt)
-total=$((open_count + closed_count))
-
-# 2. Update MEMORY.md Current Status
-# 3. Update CLAUDE.md Phase summaries
-# 4. Update docs/REVIEW_PROCESS.md header
-# 5. Verify all match
-```
-
-### Pattern 3: New Workflow Established
-
-**Trigger**: Discovered new process, established new standard
-
-**Updates needed**:
-1. Add complete workflow to MEMORY.md
-2. Add principle to CLAUDE.md (if foundational)
-3. Add detailed procedure to docs/*.md (if complex)
-4. Add to "Recent Work" in MEMORY.md
-
-**Example**: Learned "always verify bugs in actual code"
-- Add to CLAUDE.md Core Principles: "Review Quality Standards"
-- Add complete verification workflow to MEMORY.md
-- Add detailed examples to docs/REVIEW_PROCESS.md
-
-### Pattern 4: File Organization Changed
-
-**Trigger**: New directory, new file types, restructuring
-
-**Updates needed**:
-1. Update "File Organization" in CLAUDE.md
-2. Update "Key Files" in MEMORY.md
-3. Update "Repository Structure" in docs/*.md
-4. Update file counts everywhere
+For all triggers: update dates everywhere and verify consistency.
 
 ---
 

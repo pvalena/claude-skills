@@ -333,75 +333,41 @@ independently verify each finding.
 
 #### AI-Generated Code Verification
 
-When commit messages contain `Assisted-by:`, `Co-authored-by:` with an AI tool name,
-or any other indicator of AI-generated code, apply additional scrutiny:
+When commit messages contain `Assisted-by:`, `Co-authored-by:` with
+an AI tool name, apply additional scrutiny:
 
-1. **Verify every claim in the commit message**: AI-generated commit messages may
-   reference commits, functions, or behaviors that don't exist or are described
-   inaccurately. Check each referenced commit hash with `git log --all --grep`.
+1. **Verify commit message claims**: AI messages may reference
+   commits/functions that don't exist. Check with `git log --grep`.
+2. **Holistic fit**: AI code can be locally correct but miss build
+   system interactions, downstream consumers, or project patterns.
+3. **Comments/docs accuracy**: AI comments may contain subtle
+   inaccuracies. Read every added comment critically.
+4. **Trace execution paths**: AI code often handles the common case
+   but misses edge cases or platform-specific assumptions.
+5. **Don't assume from plausibility**: Verify in actual source, not
+   by reading the diff and nodding along.
 
-2. **Question whether the code makes sense holistically**: AI can produce code that
-   is locally correct but doesn't fit the surrounding architecture. Check:
-   - Does the change interact correctly with the build system (linker scripts,
-     Makefiles, module definitions)?
-   - Are there downstream consumers that expect the old behavior?
-   - Does the change match the project's existing patterns for similar problems?
-
-3. **Check comments and documentation for accuracy**: AI-generated comments may
-   contain subtle inaccuracies (wrong terminology, slightly-off grammar that
-   obscures meaning, claims about guarantees that don't hold). Read every comment
-   added by the patch critically.
-
-4. **Trace the full execution path**: AI-generated code often handles the common
-   case correctly but may miss edge cases or make assumptions about platform
-   guarantees (e.g., identity mapping, memory ordering, API contracts) that need
-   verification.
-
-5. **Don't assume correctness from plausibility**: AI code can look convincing
-   while being subtly wrong. The standard is the same as any other code: verify
-   in the actual source, not by reading the diff and nodding along.
-
-If the code passes all these checks, note in the review intro that AI-assistance
-was declared and heightened scrutiny was applied. Do not penalize code that looks
-correct for being AI-assisted.
+Note AI-assistance in the review intro when detected. Do not penalize
+code that looks correct for being AI-assisted.
 
 #### Agent-Delegated Reviews
 
-When reviews are produced by spawned agents (e.g., parallel review of multiple MRs),
-treat every finding as a draft that needs confirmation. Agents make claims sourced
-from training knowledge that read as if they came from the source code. Three
-categories require particular scrutiny:
+When reviews are produced by spawned agents, treat every finding as a
+draft. Agents make claims from training knowledge that read as source
+code findings. Three claim types need scrutiny:
 
-**Spec compliance claims**: "Per the virtio 1.0 spec (section 2.6.6)..." or "the
-TPM 2.0 spec defines this as 64-bit." The agent did not fetch the spec -- it is
-recalling training data. The claim may be correct, but you cannot vouch for it.
-Either read the actual spec (via WebFetch), confirm the behavior by reading in-tree
-code that implements it, or soften the language: "the expected behavior based on
-other virtio drivers in-tree" instead of "per the spec."
+- **Spec compliance**: "Per the virtio 1.0 spec..." — agent recalled
+  training data, did not fetch the spec. Confirm via in-tree code or
+  soften language.
+- **Platform behavior**: "On i386_ieee1275, this function does X" —
+  read the actual implementation. (PR133: claimed cleanup was a no-op.)
+- **API contracts**: "This function never returns NULL" — check if
+  the reasoning cites actual source lines or just asserts.
 
-**Platform behavior claims**: "On i386_ieee1275, grub_pci_device_unmap_range
-performs actual resource cleanup." The agent is asserting what a platform-specific
-implementation does without necessarily having read it. Read the actual
-implementation yourself. In PR133, this type of claim turned out to be false --
-the function was an empty no-op on ieee1275, and the finding based on it had to
-be dropped.
-
-**API contract claims**: "This function never returns NULL" or "grub_strtol never
-sets *endp to NULL." These may be correct if the agent traced into the
-implementation and cited specific lines. Check whether the reasoning file cites
-concrete lines from the actual implementation, or whether it just asserts the
-behavior. If it cites lines, spot-check one or two. If it just asserts, trace
-into the implementation yourself.
-
-**Process**: For each agent-produced finding:
-1. Read the issue description and identify claims about behavior outside the
-   changed files (specs, platform code, API internals)
-2. For each such claim, check: did the agent cite specific lines from the actual
-   source, or is it asserting from training knowledge?
-3. If citing lines: spot-check at least one claim by reading the source yourself
-4. If asserting: either read the code to confirm, soften the language, or drop
-   the finding if it depends entirely on the unconfirmed claim
-5. Never pass through an agent's claim as your own without this check
+**Process**: For each agent finding, identify claims about behavior
+outside the changed files. If the agent cites source lines,
+spot-check. If it just asserts, confirm yourself or drop the finding.
+Never pass through an agent's claim as your own.
 
 #### For Clean Reviews
 
@@ -419,41 +385,19 @@ reentrancy safety. A quick clean pass is not sufficient for these areas.
 
 #### Common False Positive Patterns
 
-**Double-free false positive:**
-```c
-grub_free(ptr);         // Review claims double-free
-// ...
-ptr = NULL;             // Review MISSED this -- not a bug
-// ...
-grub_free(ptr);         // Safe: ptr is NULL
-```
-
-**NULL dereference false positive:**
-```c
-if (param == NULL)      // Review missed this guard at function entry
-  return;
-// ...
-*param = value;         // Review claims NULL deref -- already checked above
-```
-
-**Resource leak false positive:**
-```c
-fd = open(...);
-if (!fd) {
-  return;               // Review claims fd leak
-}                       // But fd is 0 (invalid), not a real fd
-```
+- **Double-free**: Review missed `ptr = NULL` between two frees
+- **NULL deref**: Review missed a guard check earlier in the function
+- **Resource leak**: `fd = open(); if (!fd) return;` — fd is 0
+  (invalid), not a real fd
 
 #### If You Find a False Positive
 
-1. Remove it from the review file
-2. Update the reasoning file
-3. Re-verify all other findings in the same review (pattern of errors)
+Remove from review, update reasoning, re-verify all other findings
+in the same review (pattern of errors).
 
 #### If You Find a Missed Issue
 
-1. Add it to the review file
-2. Add it to the reasoning file
+Add to both the review file and reasoning file.
 
 ---
 
@@ -803,110 +747,41 @@ the block.
 
 ## Anti-Patterns to Avoid
 
-**Asserting without proving:**
-```
-BAD:  "This could cause a double-free."
-GOOD: "free() at line 2099 does not NULL the pointer. Line 2143 retrieves the
-       same pointer via transfer->controller_data. Line 2196 frees it again."
-```
+**Asserting without proving**: BAD: "This could cause a double-free."
+GOOD: "free() at line 2099 does not NULL the pointer. Line 2143
+retrieves the same pointer. Line 2196 frees it again."
 
-**Vague consequences:**
-```
-BAD:  "This might cause problems."
-GOOD: "grub-install reports success but no EFI boot entry is created. System
-       will not boot GRUB after firmware boot order reset."
-```
+**Vague consequences**: BAD: "This might cause problems." GOOD:
+"grub-install reports success but no EFI boot entry is created."
 
-**Suggesting fixes in reasoning files:**
-```
-BAD:  "Should add fclose(fp) before return."
-GOOD: "fp is never closed before return rc on line 129."
-(Fixes go in the review .md file, not in reasoning.)
-```
+**Suggesting fixes in reasoning files**: Fixes go in the review .md,
+not in reasoning. Reasoning states facts: "fp is never closed before
+return rc on line 129."
 
-**Reporting style issues as bugs:**
-```
-BAD:  "Minor: Variable name 'x' is not descriptive."
-GOOD: Don't report this at all. Only report issues that affect correctness.
-```
+**Reporting style as bugs**: Don't. Only report correctness issues.
 
-**Overstating what was done:**
-```
-BAD:  "Verified all scenarios." "Confirmed correct against the spec."
-      "All error paths validated." "Memory management verified."
-GOOD: "Traced the logic for several scenarios -- no issues spotted."
-      "Looks consistent with existing in-tree TPM code (not independently
-      checked against the spec)." "Read all error paths -- no leaks spotted."
-You read code. You did not compile it, run tests, or consult external specs.
-```
+**Overstating what was done**: BAD: "Verified all scenarios." GOOD:
+"Traced the logic for several scenarios -- no issues spotted." You
+read code — you did not compile, run tests, or consult external specs.
 
 ---
 
 ## Version History
 
-- **3.9.0** (2026-07-16): Added investigation files for large clean
-  reviews. Very large MRs (library imports, multi-thousand-line diffs)
-  that require extensive line-by-line analysis should produce an
-  `_investigation.txt` file documenting what was checked and why
-  nothing was found. The review's "Additional findings" section stays
-  brief (crucial points only) with a link to the investigation file.
-  Small/simple clean reviews do not need investigation files. Based
-  on feedback from PR176 (~24k lines) and PR177 (~2k lines) reviews.
-- **3.8.0** (2026-06-29): Trimmed Phase 0 to reference the sanity-check
-  skill instead of duplicating its procedure. Kept only the critical
-  constraint (no git log/diff before Phase 0 completes) and the
-  PASS/SUSPICIOUS/REJECT outcomes. Aligned with sanity-check skill v1.1.0.
-  Based on user feedback that git log was being run before the sanity check
-  and that ordering/abort rules belong in one place.
-- **3.7.0** (2026-06-25): Added Phase 6 (Double-Check) -- independent
-  re-verification pass after all artifacts are written. Re-reads source
-  for each finding, checks draft fix correctness, looks for missed issues.
-  Added to parallel review workflow as step 6. Based on repeated user
-  requests for post-review double-checking across PR151-PR159 cycles.
-- **3.6.0** (2026-06-16): Clean reviews must be brief: 2-3 sentences after
-  "No issues found", no per-commit paragraphs (commit messages already cover
-  that). Added commit message verification step to Phase 5: check that each
-  message accurately describes its code change (semantic, not formatting).
-  Added to content quality checklist. Based on feedback from PR145/PR148 reviews.
-- **3.5.0** (2026-06-09): Added "Depth scales with complexity" core principle:
-  MRs touching page tables, TCP state machines, crypto/security code, or inline
-  assembly require deeper analysis with concrete examples, edge case tracing, and
-  callback ordering verification. Added matching guidance to Phase 2 clean review
-  pass. Based on feedback from PR141/143/144 review cycle.
-- **3.4.0** (2026-05-27): Added Phase 0 (Sanity Check) -- run the `sanity-check` skill
-  before code review to catch malicious intent and prompt injection. Clarified review
-  file brevity: issue descriptions should state bug/consequence/fix concisely; full
-  analysis belongs in the reasoning file only.
-- **3.3.0** (2026-05-26): Added "Honest claims" core principle: say only what you
-  actually did; reading code is not "verifying", comparing with training knowledge
-  is not "checking the spec." Added clean review language guidance with good/bad
-  examples. Added "Overstating what was done" anti-pattern. Added Agent-Delegated
-  Reviews section (spec/platform/API claim categories, 5-step checking process,
-  PR133 ieee1275 false positive example). Added pre-existing bugs to "What NOT to
-  report." Added non-C review targets (CI/YAML, shell, drivers). Renamed "Fix
-  verification" to "Fix assessment" throughout. Clarified Phase 4 as reasoning
-  depth pass (not a duplicate re-read). Softened remaining "verify" language in
-  Phases 2/4. Based on feedback from PR127-PR134 review cycle.
-- **3.2.0** (2026-05-20): Leaner review format: removed severity labels, removed
-  "Review Result" section (no intro-content-conclusion repetition), reasoning link
-  stands alone at the end. Expanded reasoning file requirements: full verification
-  trail (Discovery, Source trace, Consequence, Fix verification), header listing all
-  source files read, API semantics must be traced into implementations, platform
-  behavior checked via build config. Merged Phase 4 into a verification-focused
-  pass. Added 4 new bug patterns: const env mutation, grub_strtol error checking,
-  platform-dependent type sizes, leaked grub_errno. Based on PR124/PR126 reviews.
-- **3.1.0** (2026-05-14): Added commit message verification step (Phase 1, step 2).
-  Added AI-generated code verification section (Phase 2) with checklist for
-  heightened scrutiny when AI-assistance tags are present. Based on review of
-  MR !122 (Assisted-by: github-copilot:claude-opus-4.7).
-- **3.0.0** (2026-05-03): Restructured to match actual review workflow. Added Phase 3
-  (Draft Fixes) and Phase 4 (Deep Reasoning). Updated review file format with structured
-  headings. Updated reasoning file format to require Discovery/Analysis/Step-by-step/
-  Consequence sections. Added parallel review guidance. Removed unused sections
-  (CI/CD integration, customization options). Updated examples from actual reviews.
-- **2.1.0** (2026-04-10): Added Phase 0 with checklist, verification examples, false positive patterns.
-- **2.0.0**: Verification phase, completeness checks, false positive prevention.
-- **1.0.0**: Initial version.
+- **3.9.0** (2026-07-16): Investigation files for large clean reviews
+- **3.8.0** (2026-06-29): Phase 0 references sanity-check skill
+- **3.7.0** (2026-06-25): Phase 6 (Double-Check) added
+- **3.6.0** (2026-06-16): Brief clean reviews, commit message verification
+- **3.5.0** (2026-06-09): "Depth scales with complexity" principle
+- **3.4.0** (2026-05-27): Phase 0 (Sanity Check) added
+- **3.3.0** (2026-05-26): "Honest claims" principle, agent-delegated
+  reviews, non-C review targets (CI/YAML, shell, drivers)
+- **3.2.0** (2026-05-20): Leaner format, expanded reasoning file
+  requirements, 4 new bug patterns
+- **3.1.0** (2026-05-14): AI-generated code verification
+- **3.0.0** (2026-05-03): Major restructure with 6 phases
+- **2.x**: Verification phase, false positive prevention
+- **1.0.0**: Initial version
 
 ## See Also
 

@@ -1,6 +1,6 @@
 ---
 name: Memory Dump
-description: Create exhaustive knowledge-transfer dumps from context for model transitions, session restoration, and cross-directory continuity
+description: Create exhaustive knowledge-transfer dumps from context for model transitions and session restoration
 author: pvalena
 version: 2.0.0
 tags: [meta, context, session-management, model-transition, restoration, continuity, knowledge-transfer]
@@ -8,7 +8,10 @@ tags: [meta, context, session-management, model-transition, restoration, continu
 
 # Memory Dump Skill
 
-**Purpose**: Create exhaustive knowledge-transfer documents from the current context window that enable seamless continuation of work across model transitions, session boundaries, context compactions, and working directories. Think logbook, not snapshot.
+**Purpose**: Create exhaustive knowledge-transfer documents from the current
+context window that enable seamless continuation of work across model
+transitions, session boundaries, context compactions, and working
+directories. Think logbook, not snapshot.
 
 ## When to Use This Skill
 
@@ -22,19 +25,38 @@ Use this skill when:
 
 ## Core Principles
 
-**Write from memory, not from discovery.** Do NOT run commands (git status, ls, grep) to gather state. Write everything from what is already in the context window. The dump captures what was learned, decided, and understood — not what `git log` says right now. If you need to verify something, do it BEFORE invoking this skill, not during.
+**Write from memory, not from discovery.** Do NOT run commands (git
+status, ls, grep) to gather state. Write everything from what is
+already in the context window. The dump captures what was learned,
+decided, and understood — not what `git log` says right now. If you
+need to verify something, do it BEFORE invoking this skill, not during.
 
-**Logbook over snapshot.** A good dump teaches. It explains WHY things are the way they are, not just WHAT they are. A reader should understand the domain, the constraints, the failure modes, and the reasoning — not just the current file state. Structure around the domain and the work, not around "what I did today".
+**Logbook over snapshot.** A good dump teaches. It explains WHY things
+are the way they are, not just WHAT they are. A reader should
+understand the domain, the constraints, the failure modes, and the
+reasoning — not just the current file state. Structure around the
+domain and the work, not around "what I did today".
 
-**Everything reusable.** Include every technical lesson, every non-obvious decision, every failure path discovered. A lesson that seems obvious now will not be obvious to a fresh model in a new context window. When in doubt, include it.
+**Everything reusable.** Include every technical lesson, every
+non-obvious decision, every failure path discovered. A lesson that
+seems obvious now will not be obvious to a fresh model in a new
+context window. When in doubt, include it.
 
-**Dense and complete.** Prefer tables for cross-referencing (fix matrices, module mappings, ticket status). Prefer inline code for patterns and commands. One thorough explanation beats three brief mentions. Long lines are fine — prioritize completeness over formatting.
+**Dense and complete.** Prefer tables for cross-referencing (fix
+matrices, module mappings, ticket status). Prefer inline code for
+patterns and commands. One thorough explanation beats three brief
+mentions. Prioritize completeness over formatting.
 
-**Standalone.** No "as mentioned before" references. No "see above". Every section should be understandable by a reader who jumped directly to it. Spell out acronyms on first use. Include file paths, branch names, commit SHAs.
+**Standalone.** No "as mentioned before" references. No "see above".
+Every section should be understandable by a reader who jumped directly
+to it. Spell out acronyms on first use. Include file paths, branch
+names, commit SHAs.
 
-## Structure
+## Workflow
 
-A dump has these sections, ordered from broadest context to most specific state. Not all sections are needed for every dump — skip what doesn't apply.
+A dump has these sections, ordered from broadest context to most
+specific state. Not all sections are needed for every dump — skip
+what doesn't apply.
 
 ### 1. Header
 
@@ -47,7 +69,10 @@ A dump has these sections, ordered from broadest context to most specific state.
 
 ### 2. What This Project Is
 
-One or two paragraphs of domain context. What does this codebase do? What problem is being solved? Why does this work matter? A fresh model reading this section should understand the domain well enough to make judgment calls.
+One or two paragraphs of domain context. What does this codebase do?
+What problem is being solved? Why does this work matter? A fresh model
+reading this section should understand the domain well enough to make
+judgment calls.
 
 ### 3. Repository Layout
 
@@ -60,13 +85,22 @@ All repos, branches, worktrees, and their relationships. Include:
 
 ### 4. The Technical Domain
 
-This is the core teaching section. Structure it around the DOMAIN, not the session history. For a security fix project, this means the vulnerability class. For a refactoring project, this means the architecture. For a migration, this means the before/after systems.
+This is the core teaching section. Structure it around the DOMAIN,
+not the session history. For a security fix project, this means the
+vulnerability class. For a refactoring project, this means the
+architecture. For a migration, this means the before/after systems.
 
 Include:
 - **The pattern being fixed/built/changed** — general description, then every specific instance with data flows
-- **Each instance** with: source of data → writer/transform → sink/consumer, which branches are affected, what the fix is, code snippets of before/after
-- **What was verified safe** and WHY — the negative findings are as important as the positive ones. Include the reasoning so a future model doesn't re-investigate the same files.
-- **Cross-cutting concerns** — things that affect multiple instances (e.g., "printf '%q' escaping is consumed on source, so downstream writers need their own escaping")
+- **Each instance** with: source of data -> writer/transform ->
+  sink/consumer, which branches are affected, what the fix is,
+  code snippets of before/after
+- **What was verified safe** and WHY — the negative findings are
+  as important as the positive ones. Include the reasoning so a
+  future model doesn't re-investigate the same files.
+- **Cross-cutting concerns** — things that affect multiple instances
+  (e.g., "printf '%q' escaping is consumed on source, so downstream
+  writers need their own escaping")
 
 ### 5. Status Per Work Unit
 
@@ -87,7 +121,9 @@ Each lesson as a self-contained paragraph with:
 - **Why it matters** — what breaks if you get it wrong
 - **The non-obvious part** — what a reasonable person would get wrong without this lesson
 
-These should be reusable beyond this specific project. "printf -v creates globals, not caller locals" is reusable. "We fixed file X on line 42" is not — that belongs in section 5.
+These should be reusable beyond this specific project. "printf -v
+creates globals, not caller locals" is reusable. "We fixed file X
+on line 42" is not — that belongs in section 5.
 
 Also include:
 - User preferences and constraints (communication style, commit message rules, scope limitations)
@@ -95,7 +131,8 @@ Also include:
 
 ### 8. Pending Work
 
-What's left to do, ordered by priority. For each item: what it is, why it matters, what the proposed approach is (if known).
+What's left to do, ordered by priority. For each item: what it is,
+why it matters, what the proposed approach is (if known).
 
 ### 9. Context Restoration Instructions
 
@@ -118,35 +155,64 @@ Chronological record of when major milestones happened across sessions.
 
 ## What Makes a Good Dump
 
-**Good**: "printf '%q' produces shell-safe escaping that is consumed when the output is sourced. After sourcing, the variable holds the RAW value. This means printf '%q' protects exactly ONE sourcing step. If the value is then passed to another unescaped writer (like die()), the protection is gone."
+**Good**: "printf '%q' produces shell-safe escaping that is consumed
+when the output is sourced. After sourcing, the variable holds the
+RAW value. This means printf '%q' protects exactly ONE sourcing step.
+If the value is then passed to another unescaped writer (like die()),
+the protection is gone."
 
 **Bad**: "We used printf '%q' to fix the escaping issue."
 
-**Good**: A module numbering table showing that the same logical module has different numeric prefixes across 4 branches, so you know to look for `74iscsi/` in rawhide but `95iscsi/` in rhel-9.
+**Good**: A module numbering table showing that the same logical
+module has different numeric prefixes across 4 branches, so you
+know to look for `74iscsi/` in rawhide but `95iscsi/` in rhel-9.
 
 **Bad**: "Module paths vary across branches."
 
-**Good**: "An intermediate attempt used printf -v which broke dynamic scoping — when callers declare local variables, printf -v creates globals instead of setting the caller's locals. Tests pass if you check globals; the actual caller gets empty strings."
+**Good**: "An intermediate attempt used printf -v which broke dynamic
+scoping — when callers declare local variables, printf -v creates
+globals instead of setting the caller's locals. Tests pass if you
+check globals; the actual caller gets empty strings."
 
 **Bad**: "We tried printf -v but it didn't work, so we used local -n."
 
 ## File Location
 
-- **Multi-directory projects**: Place in the parent/umbrella directory that spans all work (e.g., `source-git/DUMP_MEMORY.md` for work spanning `source-git/rawhide/`, `source-git/rhel-10/`, etc.)
+- **Multi-directory projects**: Place in the parent/umbrella directory
+  that spans all work (e.g., `source-git/DUMP_MEMORY.md` for work
+  spanning `source-git/rawhide/`, `source-git/rhel-10/`, etc.)
 - **Single-repo projects**: Place in project root
 - **Global/cross-project**: `~/.claude/session_dumps/YYYY-MM-DD-topic.md`
 
 ## Relationship to CLAUDE.md and MEMORY.md
 
-- **CLAUDE.md**: Repo instructions — what the repo is, how to work in it, constraints. Loaded automatically.
-- **MEMORY.md**: Working knowledge — current status, workflows, quick reference. Invoked when needed.
-- **DUMP_MEMORY.md**: Knowledge transfer — everything learned across sessions, structured for a reader who has never seen this work. Not loaded automatically — read on demand when restoring context.
+- **CLAUDE.md**: Repo instructions — what the repo is, how to work
+  in it, constraints. Loaded automatically.
+- **MEMORY.md**: Working knowledge — current status, workflows, quick
+  reference. Invoked when needed.
+- **DUMP_MEMORY.md**: Knowledge transfer — everything learned across
+  sessions, structured for a reader who has never seen this work. Not
+  loaded automatically — read on demand when restoring context.
 
-DUMP_MEMORY.md is the most exhaustive of the three. It may duplicate content from CLAUDE.md and MEMORY.md intentionally — it must be standalone. When CLAUDE.md and MEMORY.md exist, the dump should still be self-contained, but can reference them in the restoration instructions ("read CLAUDE.md and MEMORY.md first").
+DUMP_MEMORY.md is the most exhaustive of the three. It may duplicate
+content from CLAUDE.md and MEMORY.md intentionally — it must be
+standalone. When CLAUDE.md and MEMORY.md exist, the dump should still
+be self-contained, but can reference them in the restoration
+instructions ("read CLAUDE.md and MEMORY.md first").
 
 ## Version History
 
 - **1.0.0** (2026-04-13): Initial version based on model transition dump creation
 - **1.1.0** (2026-04-21): Trimmed from 1008 to ~500 lines; removed redundant templates
 - **1.2.0** (2026-04-22): Optimized for LLM-readability and token efficiency
-- **2.0.0** (2026-06-11): Major rewrite. Shifted from state-gathering (run commands, capture output) to knowledge-transfer (write from context window). Restructured around domain knowledge and technical lessons instead of session chronology. Added guidance on cross-directory/multi-repo dumps, lesson quality standards, and relationship to CLAUDE.md/MEMORY.md hierarchy.
+- **2.0.0** (2026-06-11): Major rewrite. Shifted from state-gathering
+  to knowledge-transfer (write from context window). Restructured
+  around domain knowledge and technical lessons instead of session
+  chronology. Added cross-directory/multi-repo guidance and
+  CLAUDE.md/MEMORY.md hierarchy documentation.
+
+## See Also
+
+- **auto-memory** - For creating and maintaining project-level MEMORY.md
+- **refresh-docs** - For coordinated updates across documentation tiers
+- **review** - Context for code review dumps

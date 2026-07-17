@@ -69,7 +69,12 @@ git log origin/master..BRANCH --format='%B' > /tmp/sanity_messages.txt 2>/dev/nu
 git diff origin/master..BRANCH > /tmp/sanity_diff.txt 2>/dev/null && \
 echo "=== Prompt injection ===" && \
 grep -inE \
-  'ignore (previous|prior|above|all) instructions|you are now|new instructions|forget (everything|your|what)|act as|pretend (to be|you are)|do not (report|flag|mention)|disregard|override|system prompt|<\|im_start\|>|<\|endoftext\|>|\[INST\]|\[\/INST\]|<<SYS>>|<s>|<\/s>' \
+  'ignore (previous|prior|above|all) instructions|you are now'\
+'|new instructions|forget (everything|your|what)|act as'\
+'|pretend (to be|you are)|do not (report|flag|mention)'\
+'|disregard|override|system prompt'\
+'|<\|im_start\|>|<\|endoftext\|>|\[INST\]|\[\/INST\]'\
+'|<<SYS>>|<s>|<\/s>' \
   /tmp/sanity_messages.txt /tmp/sanity_diff.txt || true && \
 echo "=== Suspicious Unicode ===" && \
 grep -Pn '[\x{200B}\x{200C}\x{200D}\x{200E}\x{200F}\x{202A}-\x{202E}\x{2060}\x{FEFF}]' \

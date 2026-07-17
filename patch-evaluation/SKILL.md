@@ -1,6 +1,6 @@
 ---
 name: Patch Evaluation
-description: Evaluate patch sets against upstream — classify, dedup, inspect code, confirm, and assess for backport/forwardport
+description: Evaluate patch sets against upstream — classify, dedup, inspect, and assess for backport/forwardport
 author: pvalena
 version: 1.0.0
 tags: [patches, evaluation, upstream, backport, deduplication, code-review, verification]
@@ -124,10 +124,12 @@ Both should output: metadata, FAILED.patch content, master file state, key symbo
 | Trap | Example | Solution |
 |------|---------|----------|
 | Different constant name | `SSIZE_MAX` vs `GRUB_SSIZE_MAX` | Check the code pattern, not the name |
-| Different author, same fix | Two people fix the same bug differently | Check if master has ANY fix for the same issue |
+| Different author, same fix | Two people fix same bug | Check if master has ANY fix for the issue |
 | HTML-encoded patches | Re: emails with `&gt;` entities | Use `strings` for field extraction |
 | Binary content in patch | Reproducer files embedded in email | `grep` fails silently — use `strings` |
 | Partially upstream | 3 of 5 series members merged | Keep only the unmerged members |
+| Content merged via other patch | Docs added by a later series | Check actual content on master, not just titles |
+| Symbol match ≠ semantic match | grep hits but logic differs | Read surrounding context, not just the hit |
 
 #### Logging
 
@@ -185,8 +187,29 @@ Generate per-patch evaluation files containing:
 
 Categorize patches: Bug fix, New feature, Enhancement, Compatibility, RFC, Documentation.
 
-Perform category-by-category code review in dedicated log files. During review,
-may discover more redundancies → drop and re-verify.
+Perform category-by-category code review in dedicated log files (`EVALUATION_LOG_*.md`).
+
+#### Re-verification during evaluation
+
+In-depth evaluation WILL find patches that earlier phases incorrectly kept.
+This is expected — earlier phases use symbol/pattern matching, evaluation reads
+the actual code. After each category is evaluated:
+
+1. **Re-verify every KEEP** in that category against current master. Don't trust
+   earlier evidence — check again with targeted queries.
+2. **Check for semantic equivalence**: the same fix can land on master under a
+   different name, by a different author, or via a different approach. Examples:
+   - `SSIZE_MAX` vs `GRUB_SSIZE_MAX` — same constant, different namespace
+   - `curr = min_size` vs `curr += (run_size + 1)` — different fix for same bug
+   - Documentation section added via a different patch in a later series version
+3. **For series members marked "Already upstream"**: verify the ENTIRE patch
+   content is on master, not just a key symbol. If fully redundant, remove from
+   the series (dissolve to standalone if singleton remains).
+4. **Drop and re-run verification** after each finding. Update all logs, regenerate
+   unified view, run consistency checks.
+
+This step converts approximately 5-15% of remaining KEEPs to DROPs. It is not
+optional — skipping it means shipping redundant patches.
 
 ### Phase 7: Continuous Verification
 
@@ -280,3 +303,8 @@ python3 verify_unified.py
 - **1.0.0** (2026-07-17): Initial version based on GRUB2 patch analysis of 1302
   mailing list patches. Developed through 7 iterative phases with continuous
   refinement of classification, inspection, and verification methods.
+
+## See Also
+
+- **review** - Full code review workflow for individual patches
+- **sanity-check** - Quick malicious-intent scan before processing patches

@@ -1,6 +1,6 @@
 ---
 name: Verify Security Fix
-description: Verify security patches by tracing attack vectors, testing injection prevention, confirming functional equivalence, and scanning for related vulnerabilities
+description: Verify security patches by tracing attack vectors, testing injection prevention, and scanning for variants
 author: pvalena
 version: 1.0.0
 tags: [security, verification, vulnerability, injection, patch, code-review]
@@ -320,3 +320,8 @@ Result: **PASS/FAIL** -- [one-line explanation]
 
 - **1.0.0** (2026-05-14): Initial version based on dracut initramfs DHCP
   injection fix verification workflow
+
+## See Also
+
+- **review** - Full code review workflow for broader analysis
+- **sanity-check** - Quick pre-review scan for malicious intent
