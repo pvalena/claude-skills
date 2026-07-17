@@ -29,3 +29,19 @@ Review Skill — Future Work
      "filling in gaps" means in practice — could use an example
    - The relationship between Phase 2 (Verify) and Phase 6 (Double-Check)
      could be clarified — they overlap in intent but differ in timing
+
+repo-config Skill
+=================
+Standardized per-project configuration for skills that need project-specific
+parameters. Short YAML file (.claude/commit.yml or .claude/repo-config.yml)
+declaring commit conventions, validation commands, line width, version-tracked
+files, disabled checks. Skills read this instead of grepping CLAUDE.md.
+The commit skill already checks for this config first and falls back to
+CLAUDE.md discovery when absent.
+
+todo Skill
+==========
+Structured project-level deferred work tracking. Scan for TODO/FIXME/HACK
+in code, maintain a prioritized TODO.md with categories and dates, periodic
+staleness checks. Value over a flat file: lifecycle management (create with
+context, review periodically, clean up stale items).

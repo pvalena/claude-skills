@@ -10,6 +10,7 @@ Skills are loaded by Claude Code from `~/.claude/skills/*/SKILL.md`.
 
 ```
 ├── auto-memory/        — Create/maintain project-level MEMORY.md files
+├── commit/             — Project-aware commit workflow with convention discovery
 ├── create-skill/       — Meta-skill: framework for creating new skills
 │   └── validate_skills.sh  — Validation script for all skills
 ├── incremental-improvement/ — Find and measure highest-impact workflow improvement

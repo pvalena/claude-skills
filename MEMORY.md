@@ -8,8 +8,8 @@ Quick reference for working in this repository. See `CLAUDE.md` for repository o
 
 ## Current Status
 
-- **Skills**: 9 (auto-memory, create-skill, incremental-improvement, memory-dump,
-  patch-evaluation, refresh-docs, review, sanity-check, verify-fix)
+- **Skills**: 10 (auto-memory, commit, create-skill, incremental-improvement,
+  memory-dump, patch-evaluation, refresh-docs, review, sanity-check, verify-fix)
 - **Validation**: 0 errors, 15 warnings (all advisory — asymmetric See Also, sizing)
 - **Commits**: 33 total
 - **Largest skill**: review at 789L (under 800 hard max, above 600 "consider trimming")
@@ -20,6 +20,7 @@ Quick reference for working in this repository. See `CLAUDE.md` for repository o
 | Skill | Lines | Notes |
 |-------|------:|-------|
 | auto-memory | 493 | |
+| commit | ~200 | new, project-aware commit workflow |
 | create-skill | 375 | includes validate_skills.sh |
 | incremental-improvement | 369 | |
 | memory-dump | 218 | |
