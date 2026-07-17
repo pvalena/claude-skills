@@ -1,14 +1,14 @@
 ---
 name: Memory Dump
-description: Create comprehensive context dumps for model transitions and session restoration
+description: Create exhaustive knowledge-transfer dumps from context for model transitions, session restoration, and cross-directory continuity
 author: pvalena
-version: 1.2.0
-tags: [meta, context, session-management, model-transition, restoration, continuity]
+version: 2.0.0
+tags: [meta, context, session-management, model-transition, restoration, continuity, knowledge-transfer]
 ---
 
 # Memory Dump Skill
 
-**Purpose**: Create exhaustive context dumps that enable seamless continuation of work when switching Claude models, resuming after context limits, or preserving session state for future reference.
+**Purpose**: Create exhaustive knowledge-transfer documents from the current context window that enable seamless continuation of work across model transitions, session boundaries, context compactions, and working directories. Think logbook, not snapshot.
 
 ## When to Use This Skill
 
@@ -18,206 +18,135 @@ Use this skill when:
 - Taking extended breaks from complex multi-session work
 - Need to preserve detailed session state for future reference
 - Creating handoff documentation for collaborative work
+- Work spans multiple directories/repos that need a unified reference
 
 ## Core Principles
 
-**Exhaustiveness over brevity**: Include everything that might be relevant. Future you (or future model) doesn't know what will be important.
+**Write from memory, not from discovery.** Do NOT run commands (git status, ls, grep) to gather state. Write everything from what is already in the context window. The dump captures what was learned, decided, and understood — not what `git log` says right now. If you need to verify something, do it BEFORE invoking this skill, not during.
 
-**Machine-optimized format**: Structure for LLM consumption, not human readability. Dense, factual, well-organized markdown. Do not wrap lines for terminal width -- long lines are fine. Prioritize semantic completeness per line over visual formatting.
+**Logbook over snapshot.** A good dump teaches. It explains WHY things are the way they are, not just WHAT they are. A reader should understand the domain, the constraints, the failure modes, and the reasoning — not just the current file state. Structure around the domain and the work, not around "what I did today".
 
-**State snapshots**: Capture exact state of files, git repos, pending work, not just summaries.
+**Everything reusable.** Include every technical lesson, every non-obvious decision, every failure path discovered. A lesson that seems obvious now will not be obvious to a fresh model in a new context window. When in doubt, include it.
 
-**Actionable restoration**: Dump should enable immediate continuation without asking questions.
+**Dense and complete.** Prefer tables for cross-referencing (fix matrices, module mappings, ticket status). Prefer inline code for patterns and commands. One thorough explanation beats three brief mentions. Long lines are fine — prioritize completeness over formatting.
 
-**Timestamp everything**: Dates, sequences, and timelines matter for understanding context evolution.
+**Standalone.** No "as mentioned before" references. No "see above". Every section should be understandable by a reader who jumped directly to it. Spell out acronyms on first use. Include file paths, branch names, commit SHAs.
 
-## Complete Workflow
+## Structure
 
-### Phase 1: Determine Scope
+A dump has these sections, ordered from broadest context to most specific state. Not all sections are needed for every dump — skip what doesn't apply.
 
-**Goal**: Decide what needs to be captured.
-
-Assess session complexity:
-- How many files were modified? How many distinct workflows were performed?
-- Are there pending/incomplete tasks? Is there complex state that's hard to recreate?
-
-**Simple session** (< 5 file changes, single workflow): Lightweight dump -- header, session summary, files modified, next steps, restoration instructions only.
-
-**Complex session** (multiple workflows, many files, ongoing work): Full dump using all phases below.
-
-Identify what must be captured:
-- Modified files and their current state
-- Git repository states (branch, commits, untracked files)
-- Pending tasks and known issues
-- Workflow patterns established
-- Key decisions made and their rationale
-- Command patterns, user preferences, domain knowledge, quality standards, error patterns (if applicable)
-
-### Phase 2: Structure the Dump
-
-**Goal**: Create the dump file with header metadata.
-
-Choose file location:
-- **Project-specific**: project root or docs/ (e.g., `DUMP_MEMORY.md`)
-- **Global**: `~/.claude/` or `~/.claude/session_dumps/YYYY-MM-DD.md`
-
-Write the header:
+### 1. Header
 
 ```markdown
-# CONTEXT DUMP FOR [PURPOSE]
+# CONTEXT DUMP — [topic/project name]
 **Generated**: YYYY-MM-DD HH:MM
 **Session Type**: [New/Continuation/Handoff]
-**Working Directory**: /full/path/to/directory
-
-## SESSION SUMMARY
-
-### Primary Work Completed This Session
-1. Task 1
-2. Task 2
-
-### Previous Session Context (if continuation)
-[Brief summary of what led here]
+**Primary Working Directory**: /full/path
 ```
 
-### Phase 3: Capture Core State
+### 2. What This Project Is
 
-**Goal**: Document current repository and session state comprehensively.
+One or two paragraphs of domain context. What does this codebase do? What problem is being solved? Why does this work matter? A fresh model reading this section should understand the domain well enough to make judgment calls.
 
-#### Repository State
+### 3. Repository Layout
 
-For each git repository involved, gather and record:
+All repos, branches, worktrees, and their relationships. Include:
+- Paths, branch names, versions
+- Which directories are worktrees of which repos (this is easy to get wrong)
+- Related repos that are NOT worktrees (separate git histories)
+- Cross-reference tables when naming conventions differ across versions (e.g., module numbering)
+- Key tools and scripts with their invocation syntax
 
-```bash
-pwd && git status && git log --oneline -5 && git branch --show-current
-```
+### 4. The Technical Domain
+
+This is the core teaching section. Structure it around the DOMAIN, not the session history. For a security fix project, this means the vulnerability class. For a refactoring project, this means the architecture. For a migration, this means the before/after systems.
+
+Include:
+- **The pattern being fixed/built/changed** — general description, then every specific instance with data flows
+- **Each instance** with: source of data → writer/transform → sink/consumer, which branches are affected, what the fix is, code snippets of before/after
+- **What was verified safe** and WHY — the negative findings are as important as the positive ones. Include the reasoning so a future model doesn't re-investigate the same files.
+- **Cross-cutting concerns** — things that affect multiple instances (e.g., "printf '%q' escaping is consumed on source, so downstream writers need their own escaping")
+
+### 5. Status Per Work Unit
+
+For multi-branch/multi-component work, a per-unit status table with commit SHAs, then detailed notes per unit. Include:
+- What's done (with commit SHAs)
+- What's unfixed and why
+- Bugs found during the work (e.g., missed companion changes in cherry-picks)
+- A summary matrix table for quick scanning
+
+### 6. External References
+
+Ticket/issue mappings, report file locations, test script locations. Tables work well here.
+
+### 7. Technical Lessons Learned
+
+Each lesson as a self-contained paragraph with:
+- **The fact/rule** — stated directly
+- **Why it matters** — what breaks if you get it wrong
+- **The non-obvious part** — what a reasonable person would get wrong without this lesson
+
+These should be reusable beyond this specific project. "printf -v creates globals, not caller locals" is reusable. "We fixed file X on line 42" is not — that belongs in section 5.
+
+Also include:
+- User preferences and constraints (communication style, commit message rules, scope limitations)
+- Process constraints (embargo, review requirements)
+
+### 8. Pending Work
+
+What's left to do, ordered by priority. For each item: what it is, why it matters, what the proposed approach is (if known).
+
+### 9. Context Restoration Instructions
+
+Practical instructions for a fresh model picking up this work:
+- Which files to read first
+- Key constraints to remember
+- What NOT to do (push to remote, mention exploits in commits, etc.)
+
+### 10. Timestamp Trail
+
+Chronological record of when major milestones happened across sessions.
+
+### 11. End Marker
 
 ```markdown
-## REPOSITORY STATE
-
-### Project Purpose
-[One paragraph describing what this repository is for]
-
-### Current Statistics
-- Key metric 1: value
-
-### File Structure
-[Tree with purpose annotations for key files]
-
-### Git Status
-Branch: branch-name
-Status: [ahead/behind/clean]
-Recent commits: (last 5)
-Untracked/Modified files: [list]
-```
-
-#### Session Work Details
-
-For each major task or file modified:
-
-```markdown
-## DETAILED WORK THIS SESSION
-
-### 1. [Task/Feature Name]
-**File**: /path/to/file.ext
-**Changes made**: [list with line numbers]
-**Issues fixed**: [description, what was wrong, how fixed]
-**Code snippets** (for critical changes): [before/after]
-**Rationale**: Why these changes were made
-```
-
-#### Workflow Patterns
-
-Document any established patterns with steps and example commands.
-
-### Phase 4: Capture Knowledge
-
-**Goal**: Preserve learned information, decisions, and preferences.
-
-Document these if applicable:
-- **Principles & constraints**: Domain-specific rules, quality standards, constraints with rationale
-- **Learned lessons**: For each significant lesson: problem, root cause, solution, prevention
-- **User preferences**: Communication style, workflow preferences, quality standards observed
-- **Command patterns**: Common operations with project-specific commands
-- **Key statistics**: Metrics with context on why they matter
-
-### Phase 5: Document Pending State and Finalize
-
-**Goal**: Enable immediate continuation and close out the dump.
-
-#### Pending/Known Issues
-
-```markdown
-## PENDING/KNOWN ISSUES
-
-1. **Issue name**: Description
-   - Status: [Not started/In progress/Blocked]
-   - Action needed: What should be done
-```
-
-#### Session Ending State
-
-```markdown
-## SESSION ENDING STATE
-
-### Tasks Completed
-- Task 1
-
-### Tasks In Progress
-- Task 3 (50% complete - waiting for X)
-
-### Next Logical Steps (Not Started)
-1. Step 1 (priority: high)
-2. Step 2 (priority: medium)
-```
-
-#### Context Restoration Instructions
-
-```markdown
-## CONTEXT RESTORATION INSTRUCTIONS
-
-When loading this dump:
-1. Working directory is `/path/to/directory`
-2. Check [file/command] for current state
-3. Key constraint: [important thing to remember]
-4. Next action: [what to do first]
-
-**Quick verification:**
-[command to verify state]
-Expected output: [what should be seen]
-```
-
-#### Timestamp Trail and End Marker
-
-```markdown
-## TIMESTAMP TRAIL
-- Previous session: ~YYYY-MM-DD
-- This session: YYYY-MM-DD
-- Dump created: YYYY-MM-DD HH:MM
-
 ## END OF CONTEXT DUMP
 **Comprehensiveness**: [Minimal/Moderate/Exhaustive]
 **Restoration confidence**: [Low/Medium/High]
 ```
 
-## Quality Guidelines
+## What Makes a Good Dump
 
-**Do**:
-- Create dumps proactively, before hitting context limits
-- Use actual data: real file paths, commands, outputs -- never placeholders when real data is available
-- Capture rationale (why decisions were made, not just what)
-- Include failure paths (what didn't work and why)
-- Make dumps standalone -- no "as mentioned before" references
-- Test: could a fresh model pick up exactly where you left off with zero questions?
+**Good**: "printf '%q' produces shell-safe escaping that is consumed when the output is sourced. After sourcing, the variable holds the RAW value. This means printf '%q' protects exactly ONE sourcing step. If the value is then passed to another unescaped writer (like die()), the protection is gone."
 
-**Don't**:
-- Write "Fixed bug" without details, or "Various changes were made"
-- Use placeholders when you have real data
-- Leave git status without showing actual changes
-- Omit timestamps or restoration instructions
-- Reference files/concepts without explanation
+**Bad**: "We used printf '%q' to fix the escaping issue."
+
+**Good**: A module numbering table showing that the same logical module has different numeric prefixes across 4 branches, so you know to look for `74iscsi/` in rawhide but `95iscsi/` in rhel-9.
+
+**Bad**: "Module paths vary across branches."
+
+**Good**: "An intermediate attempt used printf -v which broke dynamic scoping — when callers declare local variables, printf -v creates globals instead of setting the caller's locals. Tests pass if you check globals; the actual caller gets empty strings."
+
+**Bad**: "We tried printf -v but it didn't work, so we used local -n."
+
+## File Location
+
+- **Multi-directory projects**: Place in the parent/umbrella directory that spans all work (e.g., `source-git/DUMP_MEMORY.md` for work spanning `source-git/rawhide/`, `source-git/rhel-10/`, etc.)
+- **Single-repo projects**: Place in project root
+- **Global/cross-project**: `~/.claude/session_dumps/YYYY-MM-DD-topic.md`
+
+## Relationship to CLAUDE.md and MEMORY.md
+
+- **CLAUDE.md**: Repo instructions — what the repo is, how to work in it, constraints. Loaded automatically.
+- **MEMORY.md**: Working knowledge — current status, workflows, quick reference. Invoked when needed.
+- **DUMP_MEMORY.md**: Knowledge transfer — everything learned across sessions, structured for a reader who has never seen this work. Not loaded automatically — read on demand when restoring context.
+
+DUMP_MEMORY.md is the most exhaustive of the three. It may duplicate content from CLAUDE.md and MEMORY.md intentionally — it must be standalone. When CLAUDE.md and MEMORY.md exist, the dump should still be self-contained, but can reference them in the restoration instructions ("read CLAUDE.md and MEMORY.md first").
 
 ## Version History
 
 - **1.0.0** (2026-04-13): Initial version based on model transition dump creation
-- **1.1.0** (2026-04-21): Trimmed from 1008 to ~500 lines; removed duplicate templates, redundant markdown formatting guidelines, and repeated examples
-- **1.2.0** (2026-04-22): Optimized for LLM-readability and token efficiency. Removed duplicate template section, redundant checklist (duplicated workflow), restoration workflow (duplicated Phase 5), and merged red flags with best practices. Removed artificial line-width wrapping. ~414 to ~160 lines.
+- **1.1.0** (2026-04-21): Trimmed from 1008 to ~500 lines; removed redundant templates
+- **1.2.0** (2026-04-22): Optimized for LLM-readability and token efficiency
+- **2.0.0** (2026-06-11): Major rewrite. Shifted from state-gathering (run commands, capture output) to knowledge-transfer (write from context window). Restructured around domain knowledge and technical lessons instead of session chronology. Added guidance on cross-directory/multi-repo dumps, lesson quality standards, and relationship to CLAUDE.md/MEMORY.md hierarchy.
