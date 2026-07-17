@@ -3,14 +3,17 @@ name: Verify Security Fix
 description: Verify security patches by tracing attack vectors, testing injection prevention, and scanning for variants
 author: pvalena
 version: 1.0.0
-tags: [security, verification, vulnerability, injection, patch, code-review]
+tags: [security, verification, vulnerability, injection, patch, code-review, experimental]
 ---
 
-# Verify Security Fix Skill
+# Verify Security Fix Skill (Experimental)
 
 **Purpose**: Systematically verify that a security fix actually prevents the
 reported vulnerability, preserves existing behavior, and that no analogous
 vulnerabilities remain in the codebase.
+
+> **Experimental**: Developed against shell injection and path traversal
+> fixes. Methodology is sound but not yet tested across vulnerability types.
 
 ## When to Use This Skill
 

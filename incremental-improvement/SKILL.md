@@ -3,13 +3,16 @@ name: Incremental Improvement
 description: Find the highest-impact achievable improvement in a workflow, implement it, and measure the result
 author: pvalena
 version: 2.0.0
-tags: [workflow, automation, analysis, productivity, measurement, roi, prioritization]
+tags: [workflow, automation, analysis, productivity, measurement, roi, prioritization, experimental]
 ---
 
-# Incremental Improvement Skill
+# Incremental Improvement Skill (Experimental)
 
 **Purpose**: Systematically find the single most impactful and achievable improvement in a workflow,
 measure the current state, implement the change, and verify measurable enhancement.
+
+> **Experimental**: ROI scoring and measurement framework not yet validated
+> across diverse project types.
 
 ## When to Use This Skill
 

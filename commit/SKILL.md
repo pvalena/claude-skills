@@ -3,14 +3,17 @@ name: Project Commit
 description: Project-aware commits — discover conventions from CLAUDE.md, run pre-commit checks, format messages
 author: pvalena
 version: 1.0.0
-tags: [commit, conventions, validation, workflow, pre-commit, git]
+tags: [commit, conventions, validation, workflow, pre-commit, git, experimental]
 ---
 
-# Project Commit Skill
+# Project Commit Skill (Experimental)
 
 **Purpose**: Augment Claude Code's built-in commit workflow with project-specific conventions —
 prefix format, pre-commit validation, and quality checks discovered from the project's own
 documentation and history.
+
+> **Experimental**: New skill, not yet validated across diverse projects.
+> Convention discovery heuristics may need tuning for non-standard setups.
 
 ## When to Use This Skill
 

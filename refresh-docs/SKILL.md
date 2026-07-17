@@ -3,13 +3,16 @@ name: Documentation Refresh
 description: Systematic workflow for updating, synchronizing, verifying, and garbage-collecting project documentation
 author: pvalena
 version: 1.2.0
-tags: [documentation, maintenance, consistency, verification, repository-state, garbage-collection]
+tags: [documentation, maintenance, consistency, verification, repository-state, garbage-collection, experimental]
 ---
 
-# Documentation Refresh Skill
+# Documentation Refresh Skill (Experimental)
 
 **Purpose**: Maintain accurate, consistent, and synchronized project documentation across multiple files
 as the repository state evolves.
+
+> **Experimental**: Developed against a single large review project.
+> Verification scripts and file hierarchy may need adaptation.
 
 ## When to Use This Skill
 
