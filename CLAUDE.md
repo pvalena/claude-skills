@@ -58,6 +58,8 @@ Skills are loaded by Claude Code from `~/.claude/skills/*/SKILL.md`.
   Include verbose change details here since SKILL.md version history is
   kept brief.
 
+See `MEMORY.md` for current metrics, validation details, and lessons learned.
+
 ## Development Workflow
 
 ```bash
