@@ -57,10 +57,10 @@ for skill_dir in "$SKILLS_DIR"/*/; do
     warnings=$((warnings + 1))
   fi
 
-  # Sizing check
+  # Sizing check (soft guidance, not hard caps)
   if [ "$lines" -gt 800 ]; then
-    echo "✗ $name: ${lines} lines (max 800 for any skill)"
-    se=$((se + 1))
+    echo "△ $name: ${lines} lines (target <800, check for duplication)"
+    warnings=$((warnings + 1))
   elif [ "$lines" -gt 600 ]; then
     echo "△ $name: ${lines} lines (consider trimming, target <600)"
     warnings=$((warnings + 1))

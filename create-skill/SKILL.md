@@ -282,9 +282,10 @@ available skills list. If it doesn't, check that the frontmatter `description` f
 
 ## Sizing Guidelines
 
-Skills should be sized proportional to their usage frequency and domain-specificity:
+All sizing limits are **soft guidance** — if the content brings clear value
+and has no duplication, exceeding the target is fine.
 
-- **High-frequency, domain-specific** (e.g., code review): 500-800 lines justified
+- **High-frequency, domain-specific** (e.g., code review): 500-800+ lines justified
 - **Medium-frequency, workflow-based** (e.g., doc refresh): 500-800 lines justified
 - **Low-frequency, meta/generic** (e.g., this skill): Target 400-500 lines
 - **Analysis frameworks**: Target 150-400 lines

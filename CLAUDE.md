@@ -45,7 +45,8 @@ Skills are loaded by Claude Code from `~/.claude/skills/*/SKILL.md`.
   with `name`, `description`, `version`, `tags` fields, then markdown body.
   The `description` field is critical — Claude Code uses it for discoverability.
 - **Line width**: 120 characters max in all skill files.
-- **Sizing**: 150–400 lines typical; domain-heavy skills (review) up to 800.
+- **Sizing**: 150–400 lines typical; domain-heavy skills may exceed 600.
+  All sizing limits are soft guidance, not hard caps.
 - **Sections**: `## When to Use`, `## Workflow` (or `## Complete Workflow`),
   `## Version History` are required. `## See Also` is recommended.
 - **Validation**: Run `create-skill/validate_skills.sh ~/.claude/skills`
