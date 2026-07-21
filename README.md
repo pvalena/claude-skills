@@ -3,6 +3,8 @@
 Personal collection of reusable [Claude Code](https://docs.anthropic.com/en/docs/claude-code)
 skills for code review, documentation, security, and workflow automation.
 
+_Disclaimer: this is all quite new; please excuse any mistakes or shortcomings._
+
 ## Installation
 
 Clone into your Claude Code skills directory:
