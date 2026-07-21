@@ -2,7 +2,7 @@
 name: Code Review
 description: Complete workflow for reviewing patches/commits, documenting findings, and formatting results
 author: pvalena
-version: 3.9.0
+version: 3.10.0
 tags: [code-review, documentation, formatting, security, quality, verification, false-positives]
 ---
 
@@ -674,6 +674,62 @@ When reviewing several MRs at once, run reviews in parallel where possible:
 
 ---
 
+## Re-reviewing Updated MRs
+
+When an MR is re-submitted (rebased, amended, or extended), the goal
+is to review only what changed — not repeat the full review.
+
+### 1. Identify What Changed
+
+Compare old commit hashes (from the existing review file) against the
+new branch. Old hashes survive as dangling objects after a rebase.
+
+```bash
+# Verify old hashes still exist
+git cat-file -t OLD_HASH
+
+# Compare patch content (ignoring rebase-induced blob hash changes)
+diff <(git diff OLD^..OLD) <(git diff NEW^..NEW)
+```
+
+Zero diff = identical commit (just rebased). Non-zero = actual change.
+
+Also check whether origin/master moved between rebases:
+```bash
+git log --oneline OLD_HASH^..NEW_HASH^ | head -10
+```
+
+Master movement changes blob hashes but not the MR's own patch
+content. The `diff <(git diff ...)` comparison handles this correctly.
+
+### 2. Classify Each Commit
+
+For each commit in the new branch, determine:
+- **Unchanged**: zero patch-level diff vs old version. State this
+  briefly in the review ("Commits 1-2 unchanged, verified").
+- **Reworked**: same purpose, different content. Focus review on the
+  delta — what was added, removed, or restructured.
+- **New**: not present in the old branch. Full review needed.
+
+### 3. Update Review File
+
+- Update the commit list (new hashes, new count).
+- Add a "Re-review" header line stating what changed.
+- For unchanged commits: one line ("unchanged, verified").
+- For reworked/new commits: review as normal, but keep the review
+  brief — move detailed analysis to the investigation file.
+- Do NOT repeat findings or analysis from the previous review that
+  still applies. The previous review file is still available.
+
+### 4. Update Investigation File
+
+Append a dated re-review section documenting:
+- Verification method (how old vs new commits were compared)
+- Analysis of each new or reworked commit
+- Confirmation that unchanged commits are truly unchanged
+
+---
+
 ## Common Bug Patterns
 
 **Resource leak (FILE stream):**
@@ -768,6 +824,7 @@ read code — you did not compile, run tests, or consult external specs.
 
 ## Version History
 
+- **3.10.0** (2026-07-21): Re-review workflow for updated MRs
 - **3.9.0** (2026-07-16): Investigation files for large clean reviews
 - **3.8.0** (2026-06-29): Phase 0 references sanity-check skill
 - **3.7.0** (2026-06-25): Phase 6 (Double-Check) added
