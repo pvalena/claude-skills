@@ -2,7 +2,7 @@
 name: Code Review
 description: Complete workflow for reviewing patches/commits, documenting findings, and formatting results
 author: pvalena
-version: 3.10.0
+version: 3.11.0
 tags: [code-review, documentation, formatting, security, quality, verification, false-positives]
 ---
 
@@ -352,22 +352,47 @@ code that looks correct for being AI-assisted.
 
 #### Agent-Delegated Reviews
 
-When reviews are produced by spawned agents, treat every finding as a
-draft. Agents make claims from training knowledge that read as source
-code findings. Three claim types need scrutiny:
+When reviews are produced by spawned agents, treat every finding as
+a draft and every clean result as unverified. Agents have two
+failure modes: false claims (asserting behavior from training data)
+and format gaps (verbose findings, missing investigation files).
+
+**Claim verification** — three claim types need scrutiny:
 
 - **Spec compliance**: "Per the virtio 1.0 spec..." — agent recalled
   training data, did not fetch the spec. Confirm via in-tree code or
   soften language.
 - **Platform behavior**: "On i386_ieee1275, this function does X" —
-  read the actual implementation. (PR133: claimed cleanup was a no-op.)
+  read the actual implementation. (PR133: claimed cleanup was a
+  no-op.)
 - **API contracts**: "This function never returns NULL" — check if
   the reasoning cites actual source lines or just asserts.
 
-**Process**: For each agent finding, identify claims about behavior
-outside the changed files. If the agent cites source lines,
-spot-check. If it just asserts, confirm yourself or drop the finding.
-Never pass through an agent's claim as your own.
+**Format and completeness audit** — agents typically produce
+correctly structured reviews but miss two things:
+
+- **Verbose Additional findings**: agents tend to put verification
+  detail directly in the review instead of creating an investigation
+  file. If the Additional findings section exceeds ~6 lines, move
+  the detail to an investigation file and trim the review.
+- **Missing investigation files**: agents don't create investigation
+  files for complex clean reviews. The main reviewer must identify
+  which agent-reviewed MRs are complex enough (new modules, page
+  table math, crypto, multi-file refactors) and create
+  investigation files for them.
+
+**Process**: For each agent-produced review:
+1. Read the actual diff and verify the conclusion (especially for
+   the more complex MRs in the batch)
+2. Check claims about behavior outside the changed files — if the
+   agent cites source lines, spot-check; if it asserts, confirm
+   or drop the finding
+3. Check Additional findings for verbosity — trim and move to
+   investigation file if needed
+4. Create investigation files for complex clean reviews the agent
+   missed
+5. Never pass through an agent's claim or report agent results to
+   the user without this audit
 
 #### For Clean Reviews
 
@@ -663,14 +688,29 @@ initial review missed:
 
 ## Reviewing Multiple MRs
 
-When reviewing several MRs at once, run reviews in parallel where possible:
+When reviewing several MRs at once, run reviews in parallel where
+possible. Split into batches by complexity — large/complex MRs
+standalone, small ones in agent batches.
 
-1. **List all MRs** with commit counts first
-2. **Review in parallel** -- each MR is independent, spawn concurrent reviews
-3. **Verify sequentially** -- re-read each review's findings against actual code
-4. **Draft fixes** -- add patches or explanations to each review
-5. **Deep reasoning** -- ensure reasoning files have full step-by-step depth
-6. **Double-check** -- independent re-verification of all findings and missed issues
+1. **List all MRs** with commit counts and diff sizes
+2. **Split by complexity**: large MRs (hundreds of lines, new modules,
+   crypto, page tables) reviewed standalone; small/mechanical MRs
+   batched to agents
+3. **Review in parallel** -- each MR is independent
+4. **Post-agent audit** (mandatory before reporting results):
+   - Read the actual diff for each agent-reviewed MR and verify
+     the "no issues" conclusion is correct — especially for the
+     more complex ones in the batch
+   - Check Additional findings sections for verbosity: detail
+     belongs in investigation files, not in the review
+   - Check whether any agent-reviewed MR is complex enough to
+     need an investigation file (agents typically don't create
+     them — the main reviewer must identify gaps and create them)
+   - Verify 120-char line width compliance
+   - Only after the audit passes, report results to the user
+5. **Draft fixes** -- add patches or explanations to each review
+6. **Deep reasoning** -- ensure reasoning files have full depth
+7. **Double-check** -- independent re-verification of findings
 
 ---
 
@@ -824,6 +864,7 @@ read code — you did not compile, run tests, or consult external specs.
 
 ## Version History
 
+- **3.11.0** (2026-07-23): Post-agent audit, format/completeness checks for agent-delegated reviews
 - **3.10.0** (2026-07-21): Re-review workflow for updated MRs
 - **3.9.0** (2026-07-16): Investigation files for large clean reviews
 - **3.8.0** (2026-06-29): Phase 0 references sanity-check skill
