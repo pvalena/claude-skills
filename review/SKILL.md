@@ -2,7 +2,7 @@
 name: Code Review
 description: Complete workflow for reviewing patches/commits, documenting findings, and formatting results
 author: pvalena
-version: 3.11.0
+version: 3.12.0
 tags: [code-review, documentation, formatting, security, quality, verification, false-positives]
 ---
 
@@ -221,6 +221,32 @@ After "No issues found", add an "## Additional findings" section with
 the most important observations only -- things a reviewer must know at
 a glance (e.g., which CVEs are fixed, what the key GRUB-specific
 patch does, why a seemingly-suspicious pattern is actually correct).
+
+Two recurring kinds of observation are worth calling out explicitly,
+because they read like bugs but are not, and a reviewer who skips them
+wastes time re-deriving the same conclusion:
+
+- **Runtime no-op for current callers**: a change that is correct in
+  isolation but has no observable effect given every in-tree caller.
+  State it as such and name the caller that makes it a no-op. Example:
+  "The TPM2_VerifySignature marshalling reorder (692310f14) has no
+  runtime effect for the sole caller (module.c:726 passes
+  authCommand==NULL); it is a correct spec-conformance fix for future
+  callers." This tells a reviewer the fix is right AND that it cannot
+  be the cause of any behavior change they are chasing.
+- **Unreachable-but-real spec deviation**: code that genuinely deviates
+  from a spec/structure definition but cannot be triggered by any
+  in-tree path. Record it as an observation, not an issue, and state
+  both the deviation and why it is unreachable. Example: "The generic
+  TPMU_ASYM_SCHEME marshaller now emits a hashAlg for TPM_ALG_RSAES,
+  whose union member is empty in the TPM 2.0 tables; no in-tree caller
+  marshals an RSAES scheme, so there is no concrete impact." Do not
+  promote these to "Issues Found" (they have no failing input today),
+  but do not silently drop them either -- they are the seam where a
+  future caller introduces a real bug.
+
+Both belong under "Additional findings", never under "Issues Found",
+since neither has a concrete failure case in the current tree.
 
 **For large/complex clean reviews** (library imports, multi-file
 refactors, crypto code, or any MR where significant analysis was
@@ -864,6 +890,11 @@ read code — you did not compile, run tests, or consult external specs.
 
 ## Version History
 
+- **3.12.0** (2026-08-21): Named two recurring clean-review "Additional
+  findings" categories -- runtime no-ops for current callers, and
+  unreachable-but-real spec deviations -- with guidance to record both
+  as observations (never under "Issues Found", since neither has a
+  concrete failure case today). Drawn from the MR !227 TPM2 review.
 - **3.11.0** (2026-07-23): Post-agent audit, format/completeness checks for agent-delegated reviews
 - **3.10.0** (2026-07-21): Re-review workflow for updated MRs
 - **3.9.0** (2026-07-16): Investigation files for large clean reviews
