@@ -2,7 +2,7 @@
 name: Auto Memory
 description: Create and maintain a project-level MEMORY.md working knowledge document for any repository
 author: pvalena
-version: 1.0.0
+version: 1.1.0
 tags: [documentation, memory, project-knowledge, maintenance, garbage-collection, onboarding]
 ---
 
@@ -52,6 +52,25 @@ commands to run. Prefer specific file paths over "the relevant file."
 Target 250-350 lines. Trigger garbage collection at 500 lines. MEMORY.md that grows without bound becomes noise,
 not knowledge.
 
+### 6. Volatile Metrics Live Only in MEMORY.md, Each Paired With a Recount Command
+
+Counts, statuses, and percentages (files reviewed, tests passing, open MRs) go stale the moment they are written.
+They belong in MEMORY.md's status sections ONLY -- never in CLAUDE.md, which is loaded every conversation and
+whose stale numbers silently mislead. This is a specific case of "Facts live in one place": a count duplicated in
+both files means one of them is always wrong. A real failure this rule prevents: a dump asserted "114 reviews"
+while the project's own MEMORY.md already said 143.
+
+When you do record a metric, embed the one-line command that re-derives it so a refresh recomputes rather than
+eyeballs, and date the section so staleness is visible:
+
+```markdown
+- Review files: 149 (.md)   <!-- recount: ls reviews/*.md | wc -l -->
+- Open MRs: 24              <!-- recount: wc -l < data/open.txt -->
+```
+
+A refresh then runs the embedded command instead of trusting the printed number. If a metric has no cheap
+recount command, mark it "unverified" with the date it was last confirmed rather than presenting it as current.
+
 ---
 
 ## Documentation Hierarchy
@@ -76,7 +95,9 @@ The three-tier documentation pattern separates concerns by scope and detail leve
 
 ### Information Flow Rules
 
-- Facts live in one place (single source of truth)
+- Facts live in one place (single source of truth). In particular, a volatile metric (count, status,
+  percentage) must never appear in both CLAUDE.md and MEMORY.md -- keep it in MEMORY.md's status
+  section with a recount command (see Core Principle 6) and let CLAUDE.md reference it, not copy it.
 - CLAUDE.md points to MEMORY.md for workflows: `See MEMORY.md for complete workflow reference`
 - MEMORY.md points to docs/*.md for details: `See docs/DEPLOY.md for detailed deployment procedures`
 - Update order: docs/*.md first, then MEMORY.md, then CLAUDE.md (specific to general)
@@ -162,6 +183,14 @@ git log --oneline | wc -l                    # Total commits
 ls src/**/*.ts 2>/dev/null | wc -l           # Source files
 find tests/ -name "*.test.*" | wc -l         # Test files
 git branch -r | wc -l                        # Remote branches
+```
+
+Record each metric alongside the command that produced it (see Core Principle 6), as an inline
+`<!-- recount: ... -->` comment, so the next refresh re-derives the number instead of trusting a
+stale printed value:
+
+```markdown
+- Total commits: 1240   <!-- recount: git log --oneline | wc -l -->
 ```
 
 #### 3. Build Quick File Reference
@@ -479,6 +508,10 @@ command-2  # What it does
 
 - **1.0.0** (2026-04-30): Initial version based on GRUB2 review project MEMORY.md patterns and documentation
   hierarchy experience
+- **1.1.0** (2026-08-21): Added Core Principle 6 (volatile metrics live only in MEMORY.md, each paired with an
+  inline `<!-- recount: ... -->` command); strengthened "Facts live in one place" to forbid duplicating a count
+  across CLAUDE.md and MEMORY.md; embedded the recount-command convention into the Phase 2 status-gathering step.
+  Prompted by stale counts that diverged between CLAUDE.md and MEMORY.md.
 
 ---
 
