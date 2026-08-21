@@ -2,7 +2,7 @@
 name: Memory Dump
 description: Create exhaustive knowledge-transfer dumps from context for model transitions and session restoration
 author: pvalena
-version: 2.0.0
+version: 2.1.0
 tags: [meta, context, session-management, model-transition, restoration, continuity, knowledge-transfer]
 ---
 
@@ -42,21 +42,69 @@ non-obvious decision, every failure path discovered. A lesson that
 seems obvious now will not be obvious to a fresh model in a new
 context window. When in doubt, include it.
 
+**Separate durable knowledge from session state.** A dump has two
+kinds of content with opposite lifecycles, and mixing them is what
+makes old dumps rot. DURABLE content (domain teaching, technical
+patterns, lessons, user preferences — sections 2, 4, 7) stays true
+across sessions; a later dump APPENDS to it. SESSION STATE (per-unit
+status tables, pending work, timestamp trail — sections 5, 8, 10) is
+true only at the generation time; a later dump SUPERSEDES it. Keep the
+two visibly separated (see the Workflow's "Reusable Core" vs "Session
+State" zones) so a reader — and the next dump — knows which parts to
+trust as timeless and which to treat as a dated snapshot. When a
+freshly-learned pattern falls out of a session's status notes, promote
+it into the durable section; don't leave the only copy inside a status
+row that the next dump will overwrite.
+
+**Never bake in volatile metrics.** Counts (files reviewed, tests
+passing, open tickets), "N of M done", and percentages go stale the
+moment you write them and silently mislead later — a real failure mode:
+a dump asserted "114 reviews, last refreshed 2026-07-07" while the
+project's own MEMORY.md already said 143. Either omit such numbers, or
+write them with the one-line command that re-derives them and an
+explicit "verify before trusting" tag (e.g. "≈149 review files —
+recount: `ls reviews/*.md | wc -l`"). A logbook records reasoning and
+patterns, not a scoreboard.
+
 **Dense and complete.** Prefer tables for cross-referencing (fix
 matrices, module mappings, ticket status). Prefer inline code for
 patterns and commands. One thorough explanation beats three brief
 mentions. Prioritize completeness over formatting.
 
-**Standalone.** No "as mentioned before" references. No "see above".
-Every section should be understandable by a reader who jumped directly
-to it. Spell out acronyms on first use. Include file paths, branch
-names, commit SHAs.
+**Standalone, but don't re-copy stable procedures.** No "as mentioned
+before" references. No "see above". Every section should be
+understandable by a reader who jumped directly to it — spell out
+acronyms on first use; include file paths, branch names, commit SHAs.
+The exception is stable procedure that already has a single source of
+truth (a skill's phase list, a CLAUDE.md/MEMORY.md workflow): reference
+it by name and version rather than transcribing it, because a
+transcribed copy drifts out of date and creates a second thing to
+maintain. Reserve the dump's body for what is NOT written down
+elsewhere — in-flight state, freshly-learned patterns, findings not yet
+captured in a durable file.
 
 ## Workflow
 
 A dump has these sections, ordered from broadest context to most
 specific state. Not all sections are needed for every dump — skip
 what doesn't apply.
+
+The sections fall into two zones with opposite update rules (see the
+"Separate durable knowledge from session state" principle):
+
+- **Reusable Core** (sections 2, 4, 7) — durable domain knowledge,
+  technical patterns, lessons, and user preferences. A later dump
+  APPENDS to this; never delete a still-true pattern just because it
+  wasn't touched this session.
+- **Session State** (sections 5, 8, 10) — status tables, pending work,
+  and the timestamp trail, true only as of this dump's generation date.
+  A later dump SUPERSEDES this wholesale rather than growing it
+  unboundedly with stale rows.
+
+Keep the two zones visibly grouped (e.g. an `## END OF REUSABLE CORE`
+marker before the Session State sections) so the next dump and any
+reader immediately know which half is timeless and which is a dated
+snapshot to be replaced.
 
 ### 1. Header
 
@@ -194,11 +242,16 @@ check globals; the actual caller gets empty strings."
   sessions, structured for a reader who has never seen this work. Not
   loaded automatically — read on demand when restoring context.
 
-DUMP_MEMORY.md is the most exhaustive of the three. It may duplicate
-content from CLAUDE.md and MEMORY.md intentionally — it must be
-standalone. When CLAUDE.md and MEMORY.md exist, the dump should still
-be self-contained, but can reference them in the restoration
-instructions ("read CLAUDE.md and MEMORY.md first").
+DUMP_MEMORY.md is the most exhaustive of the three, but "exhaustive"
+means exhaustive on knowledge and state, not on re-transcribing stable
+procedure. It may restate domain knowledge and freshly-learned patterns
+that also appear elsewhere (those are cheap to keep in sync and central
+to standing alone), but it should REFERENCE — by name and version —
+stable procedures that already have a single source of truth (a skill's
+phase list, a CLAUDE.md/MEMORY.md workflow) rather than copying them,
+since a transcribed copy silently drifts. When CLAUDE.md and MEMORY.md
+exist, point to them from the restoration instructions ("read CLAUDE.md
+and MEMORY.md first") instead of duplicating their workflow sections.
 
 ## Version History
 
@@ -210,6 +263,14 @@ instructions ("read CLAUDE.md and MEMORY.md first").
   around domain knowledge and technical lessons instead of session
   chronology. Added cross-directory/multi-repo guidance and
   CLAUDE.md/MEMORY.md hierarchy documentation.
+- **2.1.0** (2026-08-21): Split content into a "Reusable Core"
+  (appended across dumps) and "Session State" (superseded each dump) to
+  stop old dumps rotting; added the "never bake in volatile metrics"
+  principle (omit counts or pair them with a re-derivation command);
+  refined "Standalone" to reference stable procedures by name+version
+  rather than transcribing them (transcribed copies drift). Prompted by
+  a dump that carried stale counts and duplicated a review skill's full
+  phase list.
 
 ## See Also
 
