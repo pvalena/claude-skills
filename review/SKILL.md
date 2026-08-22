@@ -2,7 +2,7 @@
 name: Code Review
 description: Complete workflow for reviewing patches/commits, documenting findings, and formatting results
 author: pvalena
-version: 3.12.0
+version: 3.13.0
 tags: [code-review, documentation, formatting, security, quality, verification, false-positives]
 ---
 
@@ -794,6 +794,33 @@ Append a dated re-review section documenting:
 - Analysis of each new or reworked commit
 - Confirmation that unchanged commits are truly unchanged
 
+### 5. When the Re-review Becomes Clean
+
+A re-review often flips a review from "issues found" to clean: the prior
+issue was fixed, and the fix (or a broader rework of the same area) is
+correct. Re-review the reworked area *fully* — a fix frequently comes with
+restructuring that can introduce or, as often, silently fix other bugs.
+Once it is clean, handle the companion files so history is preserved and the
+files stay self-consistent:
+
+- **Keep the prior round's `IDENTIFIER_reasoning.txt` unchanged.** It is the
+  record of the issue that was found and fixed. Deleting it loses the
+  history; editing it rewrites what a past review actually said. Leave it.
+- **Create a new `IDENTIFIER_investigation.txt`** for the current clean
+  re-verification — the customary companion for an issue-free review (Phase
+  1, step 6). Put the reworked-code analysis there (bounds, memory,
+  enforcement, plus any latent bugs the rework also fixed).
+- **Write the review in the clean format**: a "Re-review" section stating the
+  prior issue is fixed (show the applied fix), then "No issues found", an
+  "Additional findings" section, and the "For more details" link pointing to
+  the *investigation* file — not the retained reasoning file.
+
+This is the one sanctioned case where a "No issues found" review keeps a
+`_reasoning.txt`: it is a prior round's artifact, and an `_investigation.txt`
+must be present alongside it. A clean review with a *lone* `_reasoning.txt`
+(no investigation file) is still an inconsistency to fix — the reasoning file
+is a genuine leftover.
+
 ---
 
 ## Common Bug Patterns
@@ -890,6 +917,12 @@ read code — you did not compile, run tests, or consult external specs.
 
 ## Version History
 
+- **3.13.0** (2026-08-22): Re-review "became clean" handling: re-review the
+  reworked area fully, keep the prior round's `_reasoning.txt` unchanged for
+  traceability, add a new `_investigation.txt` for the clean re-verification,
+  and write the review in clean format linking the investigation file. The
+  one sanctioned case where a "No issues found" review keeps a reasoning file
+  (an investigation file must be present too).
 - **3.12.0** (2026-08-21): Named two recurring clean-review "Additional
   findings" categories -- runtime no-ops for current callers, and
   unreachable-but-real spec deviations -- with guidance to record both
