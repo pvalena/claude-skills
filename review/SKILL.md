@@ -2,7 +2,7 @@
 name: Code Review
 description: Complete workflow for reviewing patches/commits, documenting findings, and formatting results
 author: pvalena
-version: 3.13.0
+version: 3.14.0
 tags: [code-review, documentation, formatting, security, quality, verification, false-positives]
 ---
 
@@ -419,6 +419,33 @@ correctly structured reviews but miss two things:
    missed
 5. Never pass through an agent's claim or report agent results to
    the user without this audit
+
+#### Two-Agent Delegation Pipeline
+
+An alternative to the single-agent-plus-orchestrator-audit above:
+delegate the verification to a second agent instead of doing it in
+the main context. Preferred when review volume is high.
+
+1. **Review agent** (one may handle several MRs) runs Phases 0-6 and
+   writes all artifacts — including the companion file when warranted
+   (reasoning for reviews with issues; investigation for large/complex
+   clean reviews). Producing companions is the review agent's job.
+2. **Adversarial agent** in a *separate, fresh context* independently
+   re-verifies every finding against source, hunts for false positives
+   and missed issues (false negatives), and checks the linter. This
+   pass replaces the orchestrator's own re-verification from the
+   single-agent model.
+3. **Orchestrator (main model)** reads the review and approves. It does
+   NOT re-verify against source routinely — the adversarial agent did
+   that. Spot-check source only on a red flag: a claim likely beyond
+   agent competence (subtle low-level/UB, crypto, spec or platform
+   assertions). Run the linter before approving. If a needed companion
+   file is missing, send the review agent back to produce it rather
+   than writing it in the main context.
+
+Trade-off: the fresh-context adversarial pass catches more than an
+orchestrator audit (no shared blind spots) at the cost of a second
+agent run. Keep the single-agent audit above for one-off reviews.
 
 #### For Clean Reviews
 
@@ -917,6 +944,11 @@ read code — you did not compile, run tests, or consult external specs.
 
 ## Version History
 
+- **3.14.0** (2026-08-26): Two-agent delegation pipeline: a review agent
+  writes artifacts (and its own companion files), a separate fresh-context
+  adversarial agent re-verifies, and the orchestrator approves without
+  routine re-verification (spot-checks only on red flags; bounces missing
+  companions back to the review agent).
 - **3.13.0** (2026-08-22): Re-review "became clean" handling: re-review the
   reworked area fully, keep the prior round's `_reasoning.txt` unchanged for
   traceability, add a new `_investigation.txt` for the clean re-verification,
