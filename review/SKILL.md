@@ -2,7 +2,7 @@
 name: Code Review
 description: Complete workflow for reviewing patches/commits, documenting findings, and formatting results
 author: pvalena
-version: 3.14.0
+version: 3.15.0
 tags: [code-review, documentation, formatting, security, quality, verification, false-positives]
 ---
 
@@ -852,6 +852,10 @@ is a genuine leftover.
 
 ## Common Bug Patterns
 
+These are language-neutral patterns worth checking on any review. For pitfalls
+tied to a specific API contract, see Project-Specific Patterns below -- those are
+examples to replace with your own project's idioms.
+
 **Resource leak (FILE stream):**
 ```
 fdopen(fd, "r") opens a FILE stream. If fclose(fp) is never called, both the
@@ -873,35 +877,21 @@ default case before specific cases. Check that more specific patterns precede
 wildcards/defaults.
 ```
 
-**Mutation of const environment storage:**
+**Mutation of storage owned by an accessor:**
 ```
-grub_env_get() returns a pointer to internal storage (const char *). Code that
-casts away const and modifies through the pointer corrupts the environment table.
+An accessor returns a pointer into internal/shared storage (often const char *).
+Code that casts away const and mutates through the pointer corrupts that storage.
 Even "temporary" mutations (*ext = '\0'; ...; *ext = '.';) are UB and fragile.
-Fix: grub_strdup() before mutation, grub_free() after use.
-```
-
-**Wrong error check for grub_strtol/grub_strtoull:**
-```
-grub_strtol() never sets *endp to NULL. On parse failure, *endp points into the
-string and grub_errno is set. Checking "if (endp != NULL)" is always true. The
-correct check is "if (grub_errno == GRUB_ERR_NONE)".
+Fix: copy before mutation (e.g. strdup), free the copy after use.
+(GRUB example: grub_env_get() returns internal environment-table storage.)
 ```
 
 **Platform-dependent type sizes:**
 ```
 sizeof(long) is 4 on 32-bit, 8 on 64-bit. If a spec defines a field as 64-bit,
-using long is correct only on 64-bit. Check module enable flags in
-Makefile.core.def -- "enable = efi" includes 32-bit platforms. Use fixed-width
-types (grub_uint64_t) for spec-defined sizes.
-```
-
-**Leaked grub_errno from best-effort operations:**
-```
-grub_errno is a global that persists until cleared. If a "non-fatal" operation
-fails and sets grub_errno but the function returns GRUB_ERR_NONE, the script
-executor's grub_print_error() will print a spurious error message. Clear
-grub_errno after intentionally-ignored failures.
+using long is correct only on 64-bit. Confirm which platforms a module actually
+builds for before assuming a width -- a build config may include 32-bit targets.
+Use fixed-width types (e.g. uint64_t) for spec-defined sizes.
 ```
 
 **Documentation/code mismatch:**
@@ -917,6 +907,28 @@ Guard condition guarantees a value (e.g., !ptr means ptr is NULL). Code inside
 the guard operates on that value redundantly (e.g., free(ptr) where ptr is
 always NULL). Check what the guard condition guarantees about variables inside
 the block.
+```
+
+### Project-Specific Patterns (GRUB/C examples -- replace with your project's)
+
+These illustrate the *shape* of API-contract bugs, not a fixed checklist. Swap in
+the error-handling and parsing idioms of the code you actually review.
+
+**Wrong error check for a parse API (grub_strtol/grub_strtoull):**
+```
+grub_strtol() never sets *endp to NULL. On parse failure, *endp points into the
+string and grub_errno is set, so "if (endp != NULL)" is always true. The correct
+check is "if (grub_errno == GRUB_ERR_NONE)". Generalize: verify a parser's actual
+failure signal, not an assumed one.
+```
+
+**Leaked global error state (grub_errno):**
+```
+grub_errno is a global that persists until cleared. If a "non-fatal" operation
+fails and sets grub_errno but the function returns GRUB_ERR_NONE, a later
+grub_print_error() prints a spurious message. Clear the global after
+intentionally-ignored failures. Generalize: any global/thread-local error state
+(errno, GetLastError) leaks across best-effort calls if not reset.
 ```
 
 ---
@@ -944,6 +956,9 @@ read code — you did not compile, run tests, or consult external specs.
 
 ## Version History
 
+- **3.15.0** (2026-09-30): Genericized Common Bug Patterns -- generic patterns
+  are now language-neutral; GRUB/C-API-specific ones moved to a clearly-marked
+  "Project-Specific Patterns" subsection to replace per project.
 - **3.14.0** (2026-08-26): Two-agent delegation pipeline: a review agent
   writes artifacts (and its own companion files), a separate fresh-context
   adversarial agent re-verifies, and the orchestrator approves without

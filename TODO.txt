@@ -1,14 +1,10 @@
 Review Skill — Future Work
 ==========================
 
-1. Extract GRUB-specific content
-   The Common Bug Patterns section (9 patterns, ~70 lines) is entirely
-   GRUB/C-specific: grub_errno, grub_env_get(), grub_strtol(), etc.
-   Options:
-   a) Move to a grub-review overlay skill that extends the generic review
-   b) Move to a "## Project-Specific Patterns" section clearly marked
-      as GRUB examples, with a note to replace with your project's patterns
-   c) Keep as-is but add a header acknowledging these are GRUB examples
+1. Extract GRUB-specific content — DONE (v3.15.0, option b)
+   Common Bug Patterns split: generic patterns are now language-neutral;
+   GRUB/C-API-specific ones (grub_strtol, grub_errno) moved to a marked
+   "Project-Specific Patterns (GRUB/C examples — replace)" subsection.
 
 2. Clarify the skill's scope vs automated PR review
    The review skill is designed for deep, structured human-directed review
