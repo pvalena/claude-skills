@@ -365,6 +365,7 @@ Use this checklist for each improvement cycle:
 - **refresh-docs** - For documentation maintenance workflows
 - **review** - For code review processes
 - **create-skill** - For capturing improvements as reusable skills
+- **todo** - For prioritizing which backlog item to improve next
 
 ---
 

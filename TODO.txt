@@ -1,12 +1,7 @@
 Review Skill — Future Work
 ==========================
 
-1. Extract GRUB-specific content — DONE (v3.15.0, option b)
-   Common Bug Patterns split: generic patterns are now language-neutral;
-   GRUB/C-API-specific ones (grub_strtol, grub_errno) moved to a marked
-   "Project-Specific Patterns (GRUB/C examples — replace)" subsection.
-
-2. Clarify the skill's scope vs automated PR review
+1. Clarify the skill's scope vs automated PR review
    The review skill is designed for deep, structured human-directed review
    with reasoning files and draft fixes — not for automated PR triage.
    The built-in /review and /code-review commands handle the automated
@@ -15,7 +10,7 @@ Review Skill — Future Work
    draft fixes -> double-check. Make this distinction clearer in the
    "When to Use" and Purpose sections.
 
-3. Potential enhancements (evaluate before implementing)
+2. Potential enhancements (evaluate before implementing)
    - Investigation file guidance could be expanded: when to create one
      vs not, what level of detail, how to structure for different review
      sizes (the current PR176/PR177 guidance is minimal)
@@ -34,10 +29,3 @@ declaring commit conventions, validation commands, line width, version-tracked
 files, disabled checks. Skills read this instead of grepping CLAUDE.md.
 The commit skill already checks for this config first and falls back to
 CLAUDE.md discovery when absent.
-
-todo Skill
-==========
-Structured project-level deferred work tracking. Scan for TODO/FIXME/HACK
-in code, maintain a prioritized TODO.md with categories and dates, periodic
-staleness checks. Value over a flat file: lifecycle management (create with
-context, review periodically, clean up stale items).

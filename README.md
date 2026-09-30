@@ -49,6 +49,7 @@ Used together, in order:
 |-------|-------------|
 | **commit** | Project-aware commits — discovers conventions from CLAUDE.md, runs pre-commit checks |
 | **incremental-improvement** | Find and measure the highest-impact workflow improvement |
+| **todo** | Prioritize a TODO backlog by impact × achievability, draft the top item, prune when done |
 | **patch-evaluation** | Evaluate patch sets against upstream for backport/forwardport *(experimental)* |
 | **create-skill** | Meta-skill: framework and conventions for creating new skills |
 
