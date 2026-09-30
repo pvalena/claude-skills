@@ -2,7 +2,7 @@
 name: Code Review
 description: Complete workflow for reviewing patches/commits, documenting findings, and formatting results
 author: pvalena
-version: 3.15.0
+version: 3.16.0
 tags: [code-review, documentation, formatting, security, quality, verification, false-positives]
 ---
 
@@ -10,7 +10,8 @@ tags: [code-review, documentation, formatting, security, quality, verification, 
 
 **Purpose**: Complete workflow for reviewing code changes (patches, commits, merge requests),
 documenting findings with technical precision, assessing correctness by reading source code,
-drafting fixes, and producing deep technical reasoning.
+drafting fixes, and producing deep technical reasoning. This is the deep, human-directed
+counterpart to fast automated triage -- for that, use the built-in `/review` and `/code-review`.
 
 ## When to Use This Skill
 
@@ -18,6 +19,8 @@ drafting fixes, and producing deep technical reasoning.
 - Need to document code review findings in a structured format
 - Creating review files, reasoning files, and draft fix patches
 - Verifying existing reviews for false positives or missed issues
+- **Not** for quick automated triage or inline PR comments (use `/code-review` or `/review`) --
+  this skill's value is the manual process: reasoning trail, draft fixes, and a double-check pass
 
 ## Core Principles
 
@@ -956,6 +959,8 @@ read code — you did not compile, run tests, or consult external specs.
 
 ## Version History
 
+- **3.16.0** (2026-09-30): Clarified scope in Purpose/When to Use -- this skill is the deep,
+  human-directed counterpart to the built-in `/review` and `/code-review` automated triage.
 - **3.15.0** (2026-09-30): Genericized Common Bug Patterns -- generic patterns
   are now language-neutral; GRUB/C-API-specific ones moved to a clearly-marked
   "Project-Specific Patterns" subsection to replace per project.

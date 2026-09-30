@@ -1,16 +1,7 @@
 Review Skill — Future Work
 ==========================
 
-1. Clarify the skill's scope vs automated PR review
-   The review skill is designed for deep, structured human-directed review
-   with reasoning files and draft fixes — not for automated PR triage.
-   The built-in /review and /code-review commands handle the automated
-   case. This skill's value is the structured process that can't be
-   easily automated: sanity check -> deep read -> reasoning trail ->
-   draft fixes -> double-check. Make this distinction clearer in the
-   "When to Use" and Purpose sections.
-
-2. Potential enhancements (evaluate before implementing)
+1. Potential enhancements (evaluate before implementing)
    - Investigation file guidance could be expanded: when to create one
      vs not, what level of detail, how to structure for different review
      sizes (the current PR176/PR177 guidance is minimal)
