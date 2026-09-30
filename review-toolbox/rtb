@@ -1,0 +1,322 @@
+#!/usr/bin/env bash
+#
+# rtb — review-toolbox: a read-only wrapper for source-inspection during
+# security/code review. Everything it does is READ-ONLY by construction:
+#   * git is only ever invoked as `git -C <repo> <WHITELISTED-READ-SUBCMD>`
+#   * filesystem sources are only ever read (cat/sed/grep/awk), never written
+#   * no write subcommands, no `cd`, no network, no /tmp scratch
+#
+# It exists so reviewers (human or agent) approve ONE Bash command prefix
+# instead of ad-hoc `cd … && git show … | sed …` pipelines, and so writes
+# (git commit / archive|tar / checkout …) are structurally impossible.
+#
+# Config: a per-project source registry (see `rtb sources`). Resolution order:
+#   1. $RTB_CONF              (explicit path)
+#   2. ./.rtbrc              (per-project, in the working dir)
+#   3. ./.review-toolbox.conf (per-project fallback)
+# The registry defines named SOURCES; each is either a git repo (kind=git,
+# read via a ref/tag) or an unpacked tree (kind=fs, read from disk).
+#
+# Extending: add a post-filter in apply_filters(), a reader in the dispatch
+# case, or a new source in the .conf. See the SKILL.md next to this script.
+#
+set -euo pipefail
+
+PROG=${0##*/}
+
+die()  { printf '%s: error: %s\n' "$PROG" "$*" >&2; exit 2; }
+warn() { printf '%s: %s\n' "$PROG" "$*" >&2; }
+
+# ---------------------------------------------------------------------------
+# Config / source registry
+# ---------------------------------------------------------------------------
+# A source is declared with three shell assignments in the .conf:
+#   SRC_<name>_KIND=git|fs
+#   SRC_<name>_PATH=/abs/path
+#   SRC_<name>_REF=<default ref>     # git only (tag/branch/commit)
+# Optionally:
+#   RTB_DEFAULT_SRC=<name>
+#   RTB_FACTS=/abs/path/to/FACTS.md
+# The .conf is plain shell but is *sourced in a restricted way*: we only read
+# variables out of it, we never exec arbitrary logic from the caller's args.
+
+find_conf() {
+  if [[ -n "${RTB_CONF:-}" ]]; then
+    [[ -r "$RTB_CONF" ]] || die "RTB_CONF not readable: $RTB_CONF"
+    printf '%s\n' "$RTB_CONF"; return
+  fi
+  for c in ./.rtbrc ./.review-toolbox.conf; do
+    [[ -r "$c" ]] && { printf '%s\n' "$c"; return; }
+  done
+  die "no config found (set \$RTB_CONF or create ./.rtbrc)"
+}
+
+load_conf() {
+  CONF=$(find_conf)
+  # shellcheck disable=SC1090
+  source "$CONF"
+}
+
+src_var()  { local n=$1 f=$2; local v="SRC_${n}_${f}"; printf '%s' "${!v:-}"; }
+src_kind() { src_var "$1" KIND; }
+src_path() { src_var "$1" PATH; }
+src_ref()  { src_var "$1" REF; }
+
+list_sources() {
+  # names of all declared sources, derived from SRC_*_PATH vars
+  local v
+  for v in $(compgen -A variable | grep -E '^SRC_.*_PATH$' | sort); do
+    printf '%s\n' "${v#SRC_}" | sed 's/_PATH$//'
+  done
+}
+
+default_src() {
+  if [[ -n "${RTB_DEFAULT_SRC:-}" ]]; then printf '%s' "$RTB_DEFAULT_SRC"; return; fi
+  list_sources | head -1
+}
+
+require_src() {
+  local n=$1
+  [[ -n "$(src_path "$n")" ]] || die "unknown source '$n' (see: $PROG sources)"
+  local p; p=$(src_path "$n")
+  [[ -d "$p" ]] || die "source '$n' path missing: $p"
+}
+
+# ---------------------------------------------------------------------------
+# Read-only git guard
+# ---------------------------------------------------------------------------
+# Only these git subcommands are ever run. Any attempt to route a different
+# subcommand is a bug/abuse and is refused.
+GIT_READ_OK=" show grep log cat-file ls-tree ls-files tag branch rev-parse rev-list diff blame describe shortlog "
+
+gitr() {                       # gitr <repo> <subcmd> [args…]
+  local repo=$1 sub=$2; shift 2
+  [[ "$GIT_READ_OK" == *" $sub "* ]] || die "refused: git '$sub' is not a read-only subcommand"
+  git -C "$repo" --no-pager "$sub" "$@"
+}
+
+# ---------------------------------------------------------------------------
+# Post-filter pipeline (composable, order: lines → grep → head/tail)
+# Extend here to add awk/cut/etc.
+# ---------------------------------------------------------------------------
+F_LINES="" F_GREP="" F_CTX="" F_HEAD="" F_TAIL="" F_COUNT=""
+
+is_uint() { [[ $1 =~ ^[0-9]+$ ]]; }
+
+apply_filters() {
+  local cmd=(cat)
+  # 1. line range
+  if [[ -n $F_LINES ]]; then
+    local a=${F_LINES%,*} b=${F_LINES#*,}
+    is_uint "$a" && is_uint "$b" || die "--lines wants A,B integers (got '$F_LINES')"
+    cmd=(sed -n "${a},${b}p")
+  fi
+  "${cmd[@]}" | _filter_grep | _filter_ends
+}
+
+_filter_grep() {
+  if [[ -n $F_GREP ]]; then
+    local args=(--color=never -n)
+    if [[ -n $F_CTX ]]; then is_uint "$F_CTX" || die "--ctx wants integer"; args+=(-C "$F_CTX"); fi
+    [[ -n $F_COUNT ]] && args=(-c)
+    grep "${args[@]}" -e "$F_GREP" || true
+  else
+    cat
+  fi
+}
+
+_filter_ends() {
+  if   [[ -n $F_HEAD ]]; then is_uint "$F_HEAD" || die "--head wants integer"; head -n "$F_HEAD"
+  elif [[ -n $F_TAIL ]]; then is_uint "$F_TAIL" || die "--tail wants integer"; tail -n "$F_TAIL"
+  else cat
+  fi
+}
+
+# consume shared --lines/--grep/--ctx/--head/--tail/--count flags from a
+# name-ref of remaining args; leaves positional/other args in REST[]
+REST=()
+parse_common() {
+  REST=()
+  while (($#)); do
+    case $1 in
+      --lines) F_LINES=${2:?--lines needs A,B}; shift 2;;
+      --grep)  F_GREP=${2:?--grep needs PATTERN}; shift 2;;
+      --ctx|-C) F_CTX=${2:?--ctx needs N}; shift 2;;
+      --head)  F_HEAD=${2:?--head needs N}; shift 2;;
+      --tail)  F_TAIL=${2:?--tail needs N}; shift 2;;
+      --count) F_COUNT=1; shift;;
+      --src)   OPT_SRC=${2:?--src needs NAME}; shift 2;;
+      --ref)   OPT_REF=${2:?--ref needs REF}; shift 2;;
+      --) shift; REST+=("$@"); break;;
+      *) REST+=("$1"); shift;;
+    esac
+  done
+}
+
+OPT_SRC="" OPT_REF=""
+resolve_src() { [[ -n $OPT_SRC ]] && printf '%s' "$OPT_SRC" || default_src; }
+resolve_ref() {
+  local n=$1
+  [[ -n $OPT_REF ]] && { printf '%s' "$OPT_REF"; return; }
+  src_ref "$n"
+}
+
+# ---------------------------------------------------------------------------
+# Commands
+# ---------------------------------------------------------------------------
+
+cmd_sources() {
+  load_conf
+  local n
+  printf '%-12s %-4s %-14s %s\n' SOURCE KIND REF PATH
+  for n in $(list_sources); do
+    printf '%-12s %-4s %-14s %s\n' "$n" "$(src_kind "$n")" "$(src_ref "$n")" "$(src_path "$n")"
+  done
+  printf '\ndefault source: %s\n' "$(default_src)"
+}
+
+cmd_facts() {
+  load_conf
+  if [[ -n "${RTB_FACTS:-}" && -r "${RTB_FACTS}" ]]; then
+    cat "$RTB_FACTS"
+  else
+    warn "no RTB_FACTS file configured; showing sources instead"
+  fi
+  printf '\n----- resolved sources (%s) -----\n' "$CONF"
+  cmd_sources
+}
+
+cmd_refs() {
+  load_conf
+  parse_common "$@"
+  local n; n=$(resolve_src)
+  require_src "$n"
+  [[ $(src_kind "$n") == git ]] || die "refs: source '$n' is not a git source"
+  gitr "$(src_path "$n")" tag | sort -V
+}
+
+# cat/show: emit a file's contents at a ref (git) or from disk (fs), filtered.
+cmd_cat() {
+  load_conf
+  parse_common "$@"
+  set -- "${REST[@]}"
+  local path=${1:?usage: $PROG cat <path> [--src N --ref R --lines A,B --grep P --ctx N --head N]}
+  local n; n=$(resolve_src); require_src "$n"
+  local kind; kind=$(src_kind "$n")
+  if [[ $kind == git ]]; then
+    local ref; ref=$(resolve_ref "$n")
+    [[ -n $ref ]] || die "no ref for git source '$n' (set SRC_${n}_REF or pass --ref)"
+    gitr "$(src_path "$n")" show "${ref}:${path}" | apply_filters
+  else
+    local f="$(src_path "$n")/${path}"
+    [[ -f $f ]] || die "no such file in source '$n': $path"
+    apply_filters < "$f"
+  fi
+}
+
+# grep: search across a whole source (git grep at a ref, or grep -rn on fs).
+cmd_grep() {
+  load_conf
+  parse_common "$@"
+  set -- "${REST[@]}"
+  local pat=${1:?usage: $PROG grep <pattern> [--src N --ref R --ctx N] [-- <pathspec…>]}; shift || true
+  local pathspec=("$@")                    # anything after the pattern / after --
+  local n; n=$(resolve_src); require_src "$n"
+  local ctx=(); [[ -n $F_CTX ]] && ctx=(-C "$F_CTX")
+  if [[ $(src_kind "$n") == git ]]; then
+    local ref; ref=$(resolve_ref "$n")
+    if ((${#pathspec[@]})); then
+      gitr "$(src_path "$n")" grep -n "${ctx[@]}" -e "$pat" "$ref" -- "${pathspec[@]}"
+    else
+      gitr "$(src_path "$n")" grep -n "${ctx[@]}" -e "$pat" "$ref"
+    fi
+  else
+    local root; root=$(src_path "$n")
+    if ((${#pathspec[@]})); then
+      ( cd "$root" && grep -rn --color=never --exclude-dir=.git "${ctx[@]}" -e "$pat" -- "${pathspec[@]}" ) || true
+    else
+      grep -rn --color=never --exclude-dir=.git "${ctx[@]}" -e "$pat" -- "$root" || true
+    fi
+  fi
+}
+
+cmd_log() {
+  load_conf; parse_common "$@"; set -- "${REST[@]}"
+  local n; n=$(resolve_src); require_src "$n"
+  [[ $(src_kind "$n") == git ]] || die "log: source '$n' is not git"
+  local ref; ref=$(resolve_ref "$n")
+  gitr "$(src_path "$n")" log --oneline -n "${F_HEAD:-20}" "$ref" -- "$@"
+}
+
+cmd_ls() {
+  load_conf; parse_common "$@"; set -- "${REST[@]}"
+  local n; n=$(resolve_src); require_src "$n"
+  local sub=${1:-}
+  if [[ $(src_kind "$n") == git ]]; then
+    local ref; ref=$(resolve_ref "$n")
+    gitr "$(src_path "$n")" ls-tree --name-only "${ref}" ${sub:+"$sub"}
+  else
+    ( cd "$(src_path "$n")" && ls -1 ${sub:+"$sub"} )
+  fi
+}
+
+usage() {
+  local def; def=$(load_conf 2>/dev/null; default_src 2>/dev/null || echo '?')
+  cat <<EOF
+$PROG — review-toolbox (read-only source inspection)
+
+USAGE
+  $PROG <command> [options]
+
+COMMANDS
+  facts                     print project FACTS.md + resolved sources
+  sources                   list configured sources (name, kind, ref, path)
+  refs [--src N]            list available tags for a git source
+  cat  <path> [opts]        show a file (git: at --ref; fs: from disk)
+  show <path> [opts]        alias of cat
+  grep <pattern> [opts] [-- <pathspec…>]
+                            search a source (git grep at ref, or grep -rn on fs)
+  log  <path> [--src N --ref R --head N]
+  ls   [subpath] [--src N --ref R]
+
+SOURCE / REF
+  --src NAME                pick a configured source (default: ${def})
+  --ref REF                 override the source's default tag/branch/commit
+
+POST-FILTERS (composable; order: lines → grep → head/tail)
+  --lines A,B               keep lines A..B         (sed -n)
+  --grep PATTERN            keep matching lines     (grep -n)
+  --ctx N | -C N            context lines for --grep / grep
+  --head N | --tail N       first/last N lines
+  --count                   count matches instead of printing
+
+EXAMPLES
+  $PROG facts
+  $PROG cat src/net/driver.c --lines 33,75
+  $PROG cat src/parser.c --grep parse_header --ctx 25 --head 40
+  $PROG grep compute_checksum -- src/crypto.c include/crypto.h
+  $PROG cat src/loader.c --src release --ref v2.4.0 --lines 309,415
+
+READ-ONLY GUARANTEE
+  git is only ever run as 'git -C <repo> <read-subcmd>' from a fixed whitelist
+  ($(echo $GIT_READ_OK)).
+  No writes, no checkout/commit/archive, no cd into repos, no /tmp scratch.
+EOF
+}
+
+main() {
+  local cmd=${1:-help}; shift || true
+  case $cmd in
+    facts)     cmd_facts "$@";;
+    sources)   cmd_sources "$@";;
+    refs)      cmd_refs "$@";;
+    cat|show)  cmd_cat "$@";;
+    grep)      cmd_grep "$@";;
+    log)       cmd_log "$@";;
+    ls)        cmd_ls "$@";;
+    help|-h|--help) usage;;
+    *) die "unknown command '$cmd' (try: $PROG help)";;
+  esac
+}
+
+main "$@"

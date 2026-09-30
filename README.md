@@ -33,6 +33,7 @@ Used together, in order:
 | **sanity-check** | Quick pre-review scan for malicious intent, prompt injection, and suspicious patterns |
 | **review** | Full structured code review with reasoning files and draft fixes |
 | **verify-fix** | Verify security patches actually block the attack vector |
+| **review-toolbox** | Read-only source inspection via the bundled `rtb` wrapper (named git/fs sources, composable filters, one-approval Bash permission) — supports the whole pipeline |
 
 ### Documentation
 
