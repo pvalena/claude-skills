@@ -2,7 +2,7 @@
 name: Review Toolbox
 description: Read-only source inspection for code/security review via the bundled `rtb` wrapper — named git/fs sources, composable filters, a whitelisted `git -C` read path, and one-approval Bash permission. Use instead of ad-hoc `cd … && git show/grep … | sed …`.
 author: pvalena
-version: 1.1.0
+version: 1.2.0
 tags: [review, security, read-only, git, tooling]
 ---
 
@@ -61,16 +61,49 @@ This gives:
 
 ## Setup (one time per project)
 
-1. **Config** — a source registry at `./.rtbrc` in the project (gitignore it if it points at
-   private paths). Format:
+1. **Config** — a source registry at `./.rtbrc` in the project: plain shell variable
+   assignments, one block per source (gitignore it if it points at private paths). `rtb` only
+   reads these variables out of it — it never execs logic from your args. Each source is one of
+   two kinds:
+   - **`git`** — a git repo read at a ref/tag/commit (`SRC_<name>_REF`), for upstream or
+     dist-git clones where you inspect code as of a version.
+   - **`fs`** — a plain directory on disk (no `REF`), for an *unpacked / already-patched* tree
+     (e.g. a `prep`/build dir) that represents what actually ships.
+
+   Variable schema:
    ```sh
    SRC_<name>_KIND=git|fs
    SRC_<name>_PATH=/abs/path
-   SRC_<name>_REF=<default tag/branch>   # git sources only
-   RTB_DEFAULT_SRC=<name>
+   SRC_<name>_REF=<default tag/branch>   # git sources only; ignored for fs
+   RTB_DEFAULT_SRC=<name>                # source used when --src is omitted
    RTB_FACTS=./FACTS.md                  # optional narrative fed to subagents
    ```
-   Resolution order: `$RTB_CONF` → `./.rtbrc` → `./.review-toolbox.conf`.
+   A complete example (generic — an upstream clone, a vendor patch repo, and the shipped tree):
+   ```sh
+   # ./.rtbrc — source registry for the "libfoo" review (LOCAL; gitignored)
+   # upstream clone: inspect code as of the shipped version
+   SRC_upstream_KIND=git
+   SRC_upstream_PATH=/abs/path/to/libfoo/upstream
+   SRC_upstream_REF=v2.4.0                 # also usable: --ref main, --ref v2.5.0-rc1
+
+   # vendor/distro patch repo (spec + numbered *.patch over a tarball)
+   SRC_distgit_KIND=git
+   SRC_distgit_PATH=/abs/path/to/libfoo/dist-git
+   SRC_distgit_REF=release-branch
+
+   # SHIPPED TRUTH: unpacked tree with downstream patches already applied
+   SRC_release_KIND=fs
+   SRC_release_PATH=/abs/path/to/libfoo/prep/libfoo-2.4.0
+
+   RTB_DEFAULT_SRC=upstream
+   RTB_FACTS=./FACTS.md
+   ```
+   Create it directly (`.rtbrc` in the project root), then run `rtb sources` to confirm every
+   path resolves. Add more components by giving each its own name prefix (e.g. `SRC_bar_*`).
+   `RTB_FACTS` is optional and free-form: a short human narrative (paths, version→tag mapping,
+   which source is authoritative, hard rules) that `rtb facts` prints ahead of the source table
+   for pasting into a subagent prompt. Resolution order for the config itself:
+   `$RTB_CONF` → `./.rtbrc` → `./.review-toolbox.conf`.
 2. **Permission** — in `.claude/settings.local.json`, allow the wrapper and drop broad shell
    allows:
    ```jsonc
@@ -142,3 +175,5 @@ Filters (chain freely; order lines→grep→head/tail): `--lines A,B`, `--grep P
 - **1.1.0**: Genericized for the shared skills collection and made self-contained — the `rtb`
   script is now bundled alongside this `SKILL.md`; config defaults to `./.rtbrc`; project-specific
   examples/rules removed.
+- **1.2.0**: Documented `.rtbrc` creation — git vs fs source kinds, a complete generic example
+  config, and what `RTB_FACTS`/`FACTS.md` should contain.
