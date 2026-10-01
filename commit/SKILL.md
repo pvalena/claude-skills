@@ -41,7 +41,9 @@ check that runs after commit is a wasted check.
 
 **Generic checks, project-specific config.** The check types (line width,
 version bump, validation) are generic. The parameters (120 chars, SKILL.md,
-validate_skills.sh) come from the project.
+validate_skills.sh) come from the project -- authoritatively from
+`.claude/repo-config.yml` when present (see the **repo-config** skill), with
+doc/git-history discovery as fallback.
 
 ---
 
@@ -51,13 +53,15 @@ validate_skills.sh) come from the project.
 
 **Goal**: Build a convention profile from project documentation and git history.
 
-#### 1. Check for repo-config (future integration)
+#### 1. Read repo-config (authoritative)
 
-Look for `.claude/commit.yml` or `.claude/repo-config.yml`. If present, read
-and use it — keys: `prefix`, `validation`, `line_width`, `version_files`,
-`body_style`. If absent, proceed to fallback sources below.
+Look for `.claude/repo-config.yml` (see the **repo-config** skill). If present,
+it is the source of truth — keys: `line_width`, `version_files`, `validation`,
+`disabled_checks`, and a `commit:` block (`prefix`, `body_style`). Use those
+values verbatim and skip discovery for any key the file sets. Only fall through
+to the sources below for keys the config omits, or when no config file exists.
 
-#### 2. Read project documentation
+#### 2. Read project documentation (fallback)
 
 ```bash
 grep -i -A 5 'commit\|prefix\|message.*format' CLAUDE.md 2>/dev/null
@@ -103,12 +107,15 @@ Report what was found before proceeding — the user should see and confirm:
 
 ```
 Discovered conventions:
-  Prefix:      "skill-name: " (from CLAUDE.md)
-  Validation:  create-skill/validate_skills.sh (from MEMORY.md)
-  Line width:  120 chars (from CLAUDE.md)
-  Version:     */SKILL.md version: field (from project type)
-  Body style:  verbose — detail in commit message (from CLAUDE.md)
+  Prefix:      "skill-name: " (from repo-config)
+  Validation:  create-skill/validate_skills.sh (from repo-config)
+  Line width:  120 chars (from repo-config)
+  Version:     */SKILL.md version: field (from repo-config)
+  Body style:  verbose — detail in commit message (from repo-config)
 ```
+
+Label each value with its real source (`repo-config` when the key came from
+`.claude/repo-config.yml`, otherwise the fallback it was discovered from).
 
 ---
 
@@ -225,6 +232,7 @@ Confirm the prefix and format match the discovered conventions.
 
 ## See Also
 
+- **repo-config** — Authoritative source for prefix, validation, line width, and version files
 - **create-skill** — Includes validate_skills.sh used as pre-commit validation example
 - **refresh-docs** — For updating project docs that contain commit conventions
 - **auto-memory** — For maintaining MEMORY.md where commit conventions may be documented

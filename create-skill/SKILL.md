@@ -218,8 +218,9 @@ Add as applicable:
 
 #### 2. Validate All Skills
 
-Run the validation script from the skills root directory to check all skills against quality
-standards (frontmatter, required sections, sizing, line width, cross-references):
+Run the validation command from the skills root directory to check all skills against quality
+standards (frontmatter, required sections, sizing, line width, cross-references). The command is
+the `validation` entry in `.claude/repo-config.yml` when present (see the **repo-config** skill):
 
 ```bash
 ~/.claude/skills/create-skill/validate_skills.sh ~/.claude/skills
@@ -369,6 +370,7 @@ Use this checklist when creating a new skill:
 - **refresh-docs** - Example of well-structured documentation skill
 - **review** - Example of workflow skill with quality standards
 - **incremental-improvement** - Example of analysis skill with frameworks
+- **repo-config** - Per-project config a new skill reads instead of hardcoding parameters
 
 ---
 

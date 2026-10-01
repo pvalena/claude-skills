@@ -1,0 +1,14 @@
+# Authoritative project config for Claude Code skills (see repo-config skill).
+# Skills read this first; CLAUDE.md / MEMORY.md / git history are fallback only.
+
+line_width: 120                      # max line length in all skill files
+version_files:                       # SKILL.md frontmatter version must bump on change
+  - glob: "*/SKILL.md"
+    field: "version:"
+validation:                          # run before committing / after any skill edit
+  - create-skill/validate_skills.sh .
+disabled_checks: []
+
+commit:
+  prefix: "<skill>: "                # scope-prefix, e.g. "review: trim v3.9"
+  body_style: verbose                # detail goes in the commit body, not SKILL.md history

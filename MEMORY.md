@@ -38,6 +38,8 @@ Quick reference for working in this repository. See `CLAUDE.md` for repository o
 - `CLAUDE.md` — Repo overview, structure, conventions (72L)
 - `MEMORY.md` — This file
 - `TODO.txt` — Deferred work items for the review skill (31L)
+- `.claude/repo-config.yml` — Authoritative project config (line width, validation,
+  commit prefix, version files); skills read this first (see `repo-config` skill)
 - `create-skill/validate_skills.sh` — Validation script for all skills (147L)
 
 **Skill ownership boundaries** (to avoid duplication):
@@ -49,7 +51,8 @@ Quick reference for working in this repository. See `CLAUDE.md` for repository o
 
 ## Validation Workflow
 
-Run after any skill edit:
+Run after any skill edit — this is the `validation` command declared in
+`.claude/repo-config.yml` (the authoritative source):
 
 ```bash
 ~/.claude/skills/create-skill/validate_skills.sh ~/.claude/skills

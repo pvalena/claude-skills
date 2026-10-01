@@ -623,9 +623,10 @@ The fix does not affect the return value (rc is already computed).
 
 **Goal**: Ensure all files meet formatting standards.
 
-#### Line Width: 120 Characters
+#### Line Width
 
-All review and reasoning files must have lines under 120 characters.
+All review and reasoning files must respect the project's line width -- `line_width` in
+`.claude/repo-config.yml` when present (see the **repo-config** skill), else 120 by default.
 
 ```bash
 # Check all review files

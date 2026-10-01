@@ -225,7 +225,8 @@ evaluation framework, keep/remove criteria, and target sizes.
 
 #### 1. Formatting
 
-Check line width if project has constraints:
+Check line width if the project constrains it (`line_width` in
+`.claude/repo-config.yml` when present; see the **repo-config** skill):
 ```bash
 # Example: 120 char limit
 for file in CLAUDE.md MEMORY.md docs/*.md; do
@@ -438,3 +439,4 @@ ls reviews/*.md | wc -l  # Compare with documented counts
 - **auto-memory** - For creating and maintaining project-level MEMORY.md files
 - **review** - After review milestones, use refresh-docs to update project documentation
 - **create-skill** - For capturing reusable workflows as global skills
+- **repo-config** - Authoritative config to sync docs against (don't restate its values)
