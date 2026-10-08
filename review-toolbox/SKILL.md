@@ -2,7 +2,7 @@
 name: Review Toolbox
 description: Read-only source inspection for code/security review via the bundled `rtb` wrapper — named git/fs sources, composable filters, a whitelisted `git -C` read path, and one-approval Bash permission. Use instead of ad-hoc `cd … && git show/grep … | sed …`.
 author: pvalena
-version: 1.2.0
+version: 1.4.0
 tags: [review, security, read-only, git, tooling]
 ---
 
@@ -122,13 +122,19 @@ rtb refs [--src N]                 # list tags for a git source
 rtb cat  <path> [opts]             # show a file (git: at --ref; fs: from disk)
 rtb show <path> [opts]             # alias of cat
 rtb grep <pattern> [opts] [-- <pathspec…>]   # git grep at ref, or grep -rn on fs
-rtb log  <path> [--src N --ref R --head N]
+rtb log  <path> [--src N --ref R --head N] [HISTORY-SEARCH opts]
+rtb diff [--ref A..B | A B | RANGE] [opts] [-- <pathspec…>]   # git diff for a range
 rtb ls   [subpath] [--src N --ref R]
 ```
 
 Source/ref: `--src NAME` (default from config), `--ref REF` (override tag/branch/commit).
 Filters (chain freely; order lines→grep→head/tail): `--lines A,B`, `--grep PAT`,
 `--ctx N`/`-C N`, `--head N`, `--tail N`, `--count`.
+
+**History search** (on `log`, for "did this code/string EVER exist?") — use this, never raw
+`git log`: `--pickaxe STR`/`-S` (commits adding/removing STR), `--diff-regex RE`/`-G`,
+`--cmsg-grep PAT`, `--all` (search every ref/tag), `--patch`/`-p` (show diffs; `-n` defaults to 200
+when searching). Empty output under `--all` = the string never existed anywhere in history.
 
 ### Translating old habits
 
@@ -137,6 +143,9 @@ Filters (chain freely; order lines→grep→head/tail): `--lines A,B`, `--grep P
 | `cd R && git show v2.4.0:F \| sed -n '33,75p'` | `rtb cat F --ref v2.4.0 --lines 33,75` |
 | `git show v2.4.0:F \| grep -n P -A25 \| head -40` | `rtb cat F --ref v2.4.0 --grep P --ctx 25 --head 40` |
 | `git grep -n P v2.4.0 -- F1 F2` | `rtb grep P --ref v2.4.0 -- F1 F2` |
+| `git -C R diff base..feature` | `rtb diff --ref base..feature` |
+| `diff <(git diff OLD^..OLD) <(git diff NEW^..NEW)` | `rtb diff OLD^ OLD` vs `rtb diff NEW^ NEW` |
+| `cd R && git log --all -p -S STR -- D/` | `rtb log --all --patch --pickaxe STR -- D/` |
 | read a patched/unpacked tree on disk | `rtb cat F --src release` |
 | check a different tag | `rtb cat F --ref v2.5.0-rc1` |
 
@@ -177,3 +186,9 @@ Filters (chain freely; order lines→grep→head/tail): `--lines A,B`, `--grep P
   examples/rules removed.
 - **1.2.0**: Documented `.rtbrc` creation — git vs fs source kinds, a complete generic example
   config, and what `RTB_FACTS`/`FACTS.md` should contain.
+- **1.3.0**: `rtb log` gained history/pickaxe search — `--pickaxe`/`-S`, `--diff-regex`/`-G`,
+  `--cmsg-grep`, `--all`, `--patch` (answer "did this string/function EVER exist?"; empty under
+  `--all` = never existed). Use instead of raw `git log -S`.
+- **1.4.0**: added `rtb diff` — a read-only `git diff` for a range (`--ref A..B`, two refs
+  `A B`, or one positional range), composable with `--grep`/`--lines`/`--head` and `-- pathspec`.
+  Covers MR/branch diffs and re-review patch comparison without raw `git diff`.

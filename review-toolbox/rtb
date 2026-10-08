@@ -100,6 +100,8 @@ gitr() {                       # gitr <repo> <subcmd> [args…]
 # Extend here to add awk/cut/etc.
 # ---------------------------------------------------------------------------
 F_LINES="" F_GREP="" F_CTX="" F_HEAD="" F_TAIL="" F_COUNT=""
+# log/history search flags (consumed by cmd_log)
+F_PICKAXE="" F_DREGEX="" F_CMSG="" F_ALL="" F_PATCH=""
 
 is_uint() { [[ $1 =~ ^[0-9]+$ ]]; }
 
@@ -147,6 +149,11 @@ parse_common() {
       --count) F_COUNT=1; shift;;
       --src)   OPT_SRC=${2:?--src needs NAME}; shift 2;;
       --ref)   OPT_REF=${2:?--ref needs REF}; shift 2;;
+      --pickaxe|-S) F_PICKAXE=${2:?--pickaxe needs STRING}; shift 2;;
+      --diff-regex|-G) F_DREGEX=${2:?--diff-regex needs REGEX}; shift 2;;
+      --cmsg-grep) F_CMSG=${2:?--cmsg-grep needs PATTERN}; shift 2;;
+      --all)   F_ALL=1; shift;;
+      --patch|-p) F_PATCH=1; shift;;
       --) shift; REST+=("$@"); break;;
       *) REST+=("$1"); shift;;
     esac
@@ -240,12 +247,29 @@ cmd_grep() {
   fi
 }
 
+# log: commit log for a path, OR a history search. Supports pickaxe (-S/--pickaxe),
+# diff-regex (-G/--diff-regex), commit-message grep (--cmsg-grep), whole-history
+# (--all, searches every ref — use to prove "did this string EVER exist?"), and
+# patches (-p/--patch). With a search flag the default -n rises so matches aren't
+# truncated. All read-only (git log is whitelisted).
 cmd_log() {
   load_conf; parse_common "$@"; set -- "${REST[@]}"
   local n; n=$(resolve_src); require_src "$n"
   [[ $(src_kind "$n") == git ]] || die "log: source '$n' is not git"
-  local ref; ref=$(resolve_ref "$n")
-  gitr "$(src_path "$n")" log --oneline -n "${F_HEAD:-20}" "$ref" -- "$@"
+  local searching=""; [[ -n $F_PICKAXE || -n $F_DREGEX || -n $F_CMSG ]] && searching=1
+  local args=(log)
+  if [[ -n $F_PATCH ]]; then args+=(-p); else args+=(--oneline); fi
+  # default count: 20 for a plain log, 200 for a history search; --head overrides
+  args+=(-n "${F_HEAD:-$([[ -n $searching ]] && echo 200 || echo 20)}")
+  [[ -n $F_PICKAXE ]] && args+=(-S "$F_PICKAXE")
+  [[ -n $F_DREGEX ]] && args+=(-G "$F_DREGEX")
+  [[ -n $F_CMSG ]] && args+=(--grep "$F_CMSG")
+  if [[ -n $F_ALL ]]; then
+    args+=(--all)
+  else
+    args+=("$(resolve_ref "$n")")
+  fi
+  gitr "$(src_path "$n")" "${args[@]}" -- "$@"
 }
 
 cmd_ls() {
@@ -258,6 +282,24 @@ cmd_ls() {
   else
     ( cd "$(src_path "$n")" && ls -1 ${sub:+"$sub"} )
   fi
+}
+
+# diff: show a git diff for a range (git only), filtered. The range comes from
+# --ref A..B, two positional refs (A B → A..B), or one positional range/ref.
+# Read-only (git diff is whitelisted). Compose with --grep/--lines/--head, e.g.
+#   rtb diff --ref origin/master..prNN
+#   rtb diff OLD^ OLD                      # re-review: what a reworked commit changed
+#   rtb diff --ref origin/master..prNN --grep grub_malloc
+cmd_diff() {
+  load_conf; parse_common "$@"; set -- "${REST[@]}"
+  local n; n=$(resolve_src); require_src "$n"
+  [[ $(src_kind "$n") == git ]] || die "diff: source '$n' is not git"
+  local range
+  if   [[ -n $OPT_REF ]]; then range=$OPT_REF
+  elif (($#>=2));        then range="$1..$2"; shift 2
+  elif (($#==1));        then range="$1";    shift
+  else die "diff: need a range (--ref A..B, two refs, or one positional)"; fi
+  gitr "$(src_path "$n")" diff "$range" -- "$@" | apply_filters
 }
 
 usage() {
@@ -276,7 +318,9 @@ COMMANDS
   show <path> [opts]        alias of cat
   grep <pattern> [opts] [-- <pathspec…>]
                             search a source (git grep at ref, or grep -rn on fs)
-  log  <path> [--src N --ref R --head N]
+  log  <path> [--src N --ref R --head N] [HISTORY-SEARCH opts]
+  diff [--ref A..B | A B | RANGE] [opts] [-- <pathspec…>]
+                            git diff for a range (git source only)
   ls   [subpath] [--src N --ref R]
 
 SOURCE / REF
@@ -290,12 +334,24 @@ POST-FILTERS (composable; order: lines → grep → head/tail)
   --head N | --tail N       first/last N lines
   --count                   count matches instead of printing
 
+HISTORY SEARCH (for 'log' — answer "did this code/string EVER exist?")
+  --pickaxe STR | -S STR    commits that add/remove STR (git log -S)
+  --diff-regex RE | -G RE   commits whose diff matches RE (git log -G)
+  --cmsg-grep PAT           commits whose message matches PAT (git log --grep)
+  --all                     search ALL refs/branches/tags, not just --ref
+  --patch | -p              show patches (otherwise --oneline); -n defaults to 200 when searching
+
 EXAMPLES
   $PROG facts
   $PROG cat src/net/driver.c --lines 33,75
   $PROG cat src/parser.c --grep parse_header --ctx 25 --head 40
   $PROG grep compute_checksum -- src/crypto.c include/crypto.h
+  $PROG diff --ref origin/master..prNN            # full MR diff
+  $PROG diff --ref origin/master..prNN --grep grub_malloc -- grub-core/
   $PROG cat src/loader.c --src release --ref v2.4.0 --lines 309,415
+  # prove a function/string never existed in a source's whole history:
+  $PROG log --src upstream --all --pickaxe some_function_name
+  $PROG log --src upstream --all --patch --diff-regex 'some_regex' -- src/
 
 READ-ONLY GUARANTEE
   git is only ever run as 'git -C <repo> <read-subcmd>' from a fixed whitelist
@@ -313,6 +369,7 @@ main() {
     cat|show)  cmd_cat "$@";;
     grep)      cmd_grep "$@";;
     log)       cmd_log "$@";;
+    diff)      cmd_diff "$@";;
     ls)        cmd_ls "$@";;
     help|-h|--help) usage;;
     *) die "unknown command '$cmd' (try: $PROG help)";;
