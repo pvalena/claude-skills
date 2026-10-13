@@ -2,7 +2,7 @@
 name: Review Toolbox
 description: Read-only source inspection for code/security review via the bundled `rtb` wrapper — named git/fs sources, composable filters, a whitelisted `git -C` read path, and one-approval Bash permission. Use instead of ad-hoc `cd … && git show/grep … | sed …`.
 author: pvalena
-version: 1.4.0
+version: 1.5.0
 tags: [review, security, read-only, git, tooling]
 ---
 
@@ -123,6 +123,7 @@ rtb cat  <path> [opts]             # show a file (git: at --ref; fs: from disk)
 rtb show <path> [opts]             # alias of cat
 rtb grep <pattern> [opts] [-- <pathspec…>]   # git grep at ref, or grep -rn on fs
 rtb log  <path> [--src N --ref R --head N] [HISTORY-SEARCH opts]
+rtb messages [--ref A..B | A B | RANGE] [--format F] [opts]   # commit messages, no diff
 rtb diff [--ref A..B | A B | RANGE] [opts] [-- <pathspec…>]   # git diff for a range
 rtb ls   [subpath] [--src N --ref R]
 ```
@@ -146,6 +147,7 @@ when searching). Empty output under `--all` = the string never existed anywhere 
 | `git -C R diff base..feature` | `rtb diff --ref base..feature` |
 | `diff <(git diff OLD^..OLD) <(git diff NEW^..NEW)` | `rtb diff OLD^ OLD` vs `rtb diff NEW^ NEW` |
 | `cd R && git log --all -p -S STR -- D/` | `rtb log --all --patch --pickaxe STR -- D/` |
+| `cd R && git log base..feature --format=full` | `rtb messages --ref base..feature` |
 | read a patched/unpacked tree on disk | `rtb cat F --src release` |
 | check a different tag | `rtb cat F --ref v2.5.0-rc1` |
 
@@ -192,3 +194,6 @@ when searching). Empty output under `--all` = the string never existed anywhere 
 - **1.4.0**: added `rtb diff` — a read-only `git diff` for a range (`--ref A..B`, two refs
   `A B`, or one positional range), composable with `--grep`/`--lines`/`--head` and `-- pathspec`.
   Covers MR/branch diffs and re-review patch comparison without raw `git diff`.
+- **1.5.0**: added `rtb messages` — commit messages for a range (no diff), same range forms as
+  `rtb diff`, default `--format=full` with a `--format` override. Lets the sanity-check message
+  pass read commit text without raw `git log`, closing the last raw-git read path.

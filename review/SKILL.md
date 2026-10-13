@@ -2,7 +2,7 @@
 name: Code Review
 description: Complete workflow for reviewing patches/commits, documenting findings, and formatting results
 author: pvalena
-version: 3.16.0
+version: 3.17.0
 tags: [code-review, documentation, formatting, security, quality, verification, false-positives]
 ---
 
@@ -31,7 +31,8 @@ verified by reading the actual source code, not just diffs.
 what was reviewed.
 
 **Evidence-based reviews**: Never report a bug you haven't seen in the actual code. Diffs can be
-misleading -- always read the full function context using `git show BRANCH:path/to/file`.
+misleading -- always read the full function context with `rtb cat path/to/file --ref BRANCH`
+(the read-only wrapper), never raw git.
 
 **Draft fixes where straightforward**: When a fix is obvious and localized, include a diff patch in
 the review. When it's not, explain why -- that's equally valuable.
@@ -40,7 +41,7 @@ the review. When it's not, explain why -- that's equally valuable.
 against training knowledge is not "checking the spec." Use precise language: "read the source
 and found no issues", "traced the logic", "looks consistent with existing in-tree code" -- not
 "verified correct" or "confirmed safe." Reserve "verified" for concrete actions like checking
-a commit exists with `git log --grep`, or confirming a file is present with `git show`. If you
+a commit exists with `rtb log --grep`, or confirming a file is present with `rtb cat`. If you
 assessed something by reading and reasoning (which is what code review is), say that.
 
 **Deep reasoning**: Reasoning files should walk through the discovery and analysis step by step, so
@@ -100,21 +101,28 @@ Check commit messages for:
   AI-generated code (e.g., `github-copilot`, `claude`, `chatgpt`). If present, apply
   heightened scrutiny (see Phase 2: AI-Generated Code Verification).
 
+**Mandatory read path:** when a `review-toolbox` source is configured (e.g. this project's
+`.rtbrc`), ALL source inspection goes through `rtb`, the read-only wrapper
+(`~/.claude/skills/review-toolbox/rtb`). Never read code with raw git in any form — not
+`git -C <repo> …`, not `cd <repo> && git show/log/diff …`, not `git … | sed/head/grep`. The
+examples below use `rtb`; map any raw-git habit onto it.
+
 #### 3. Read the Full Diff
 
 ```bash
-git diff origin/master..BRANCH
+rtb diff --ref origin/master..BRANCH
 ```
 
 Identify files changed, scope of modifications, and areas requiring deeper inspection.
 
 #### 4. Read Actual Source Code
 
-**This is the critical step.** For every file changed, read the actual source at the branch:
+**This is the critical step.** For every file changed, read the actual source at the branch —
+through `rtb`, never raw git:
 
 ```bash
-git show BRANCH:path/to/file.c
-git show BRANCH:path/to/file.c | sed -n '80,120p'   # specific lines
+rtb cat path/to/file.c --ref BRANCH                 # full file
+rtb cat path/to/file.c --ref BRANCH --lines 80,120  # specific lines
 ```
 
 Do NOT rely on diffs alone. Diffs hide context: cleanup code after the hunk, NULL checks
@@ -349,9 +357,9 @@ independently verify each finding.
 
 #### For Each Reported Issue
 
-1. Read the actual source file at the relevant lines:
+1. Read the actual source file at the relevant lines (through `rtb`, never raw git):
    ```bash
-   git show BRANCH:path/to/file.c | sed -n 'START,ENDp'
+   rtb cat path/to/file.c --ref BRANCH --lines START,END
    ```
 2. Confirm the bug exists exactly as described
 3. Check for context that might invalidate the finding:
@@ -711,9 +719,9 @@ adversarial re-read looking for mistakes in your own work.
 
 #### For Each Reported Issue
 
-1. Re-read the actual source at the branch one more time:
+1. Re-read the actual source at the branch one more time (through `rtb`, never raw git):
    ```bash
-   git show BRANCH:path/to/file.c | sed -n 'START,ENDp'
+   rtb cat path/to/file.c --ref BRANCH --lines START,END
    ```
 2. Independently confirm the bug exists as described — do not rely on
    your earlier reading; re-derive the conclusion from the code
@@ -960,6 +968,9 @@ read code — you did not compile, run tests, or consult external specs.
 
 ## Version History
 
+- **3.17.0** (2026-10-13): Made `rtb` the mandatory read path for all source inspection when a
+  source is configured; converted the remaining raw `git show … | sed` / `git diff` examples to
+  `rtb cat/diff` (agents told to "follow exactly" were copying the raw-git examples).
 - **3.16.0** (2026-09-30): Clarified scope in Purpose/When to Use -- this skill is the deep,
   human-directed counterpart to the built-in `/review` and `/code-review` automated triage.
 - **3.15.0** (2026-09-30): Genericized Common Bug Patterns -- generic patterns

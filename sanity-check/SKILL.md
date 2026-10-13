@@ -2,7 +2,7 @@
 name: Sanity Check
 description: Quick scan of PR/commit content for malicious intent, prompt injection, and hidden payloads
 author: pvalena
-version: 1.2.0
+version: 1.3.0
 tags: [security, review, injection, sanity-check, supply-chain]
 ---
 
@@ -92,8 +92,11 @@ proceed to the next sub-step or ingest more data.
 
 #### 2.1 View Commit Messages
 
+Read messages through `rtb` (the read-only `review-toolbox` wrapper) when a source is
+configured — never raw `cd grub && git log`:
+
 ```bash
-cd grub/ && git log origin/master..BRANCH --format=full
+rtb messages --ref origin/master..BRANCH
 ```
 
 Read each commit message. Check for:
@@ -106,8 +109,11 @@ view the code (Step 2.2).
 
 #### 2.2 View Actual Code
 
+Read code through `rtb` (the read-only `review-toolbox` wrapper) when a source is configured —
+never raw `cd grub && git …`:
+
 ```bash
-cd grub/ && git diff origin/master..BRANCH
+rtb diff --ref origin/master..BRANCH
 ```
 
 Quick scan of the diff for malicious intent:
@@ -193,6 +199,9 @@ content at runtime. Defense: Phase 1.3 network check.
 
 ## Version History
 
+- **1.3.0** (2026-10-13): Step 2 manual inspection now reads through `rtb` (the read-only
+  review-toolbox wrapper) when a source is configured -- 2.1 via `rtb messages`, 2.2 via `rtb
+  diff` -- instead of `cd grub && git log/diff`, so inspection never bypasses the wrapper.
 - **1.2.0** (2026-10-13): Extracted the Step 1 scan into a bundled, parameterized
   `sanity-scan.sh <range> [repo]` -- same checks and no-raw-content guarantee; added a
   range-resolve guard so an invalid range exits non-zero instead of a false all-clear.
