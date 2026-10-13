@@ -23,6 +23,7 @@ Skills are loaded by Claude Code from `~/.claude/skills/*/SKILL.md`.
 │   └── rtb                 — Read-only git/fs wrapper for review
 ├── sanity-check/       — Quick pre-review scan for malicious intent/injection
 ├── todo/               — Prioritize a TODO backlog, draft the top item, prune when done
+├── upstream-fix/       — Turn verified findings into per-issue upstream fix commits (worktrees)
 └── verify-fix/         — Verify security patches block attack vectors
 ```
 
@@ -35,6 +36,7 @@ authoritative source of truth); see the `repo-config` skill.
 1. `sanity-check` — fast malicious-intent scan before review
 2. `review` — full code review with reasoning files and draft fixes
 3. `verify-fix` — verify security patches actually block the vulnerability
+4. `upstream-fix` — turn verified findings into per-issue upstream fix commits (adversarially reviewed)
 
 **Documentation**:
 - `auto-memory` — project MEMORY.md creation and maintenance
