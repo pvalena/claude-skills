@@ -1,8 +1,8 @@
 ---
 name: Incremental Improvement
-description: Find the highest-impact achievable improvement in a workflow, implement it, and measure the result
+description: Find the highest-impact achievable improvement: a workflow win or an artifact-quality fix, then prove it
 author: pvalena
-version: 2.1.0
+version: 2.2.0
 tags: [workflow, automation, analysis, productivity, measurement, roi, prioritization, experimental]
 ---
 
@@ -12,30 +12,37 @@ tags: [workflow, automation, analysis, productivity, measurement, roi, prioritiz
 workflow's measurable friction, or in the *quality* of an artifact you rely on — implement that one
 change, and verify it delivered value.
 
-> **Experimental**: ROI scoring and measurement framework not yet validated
-> across diverse project types.
+> **Experimental**: both the ROI/measurement framework (Mode A) and the cold-review
+> mode (Mode B) are new and not yet validated across diverse project types.
 
 ## When to Use This Skill
 
-Use this skill when:
-- Completing a major workflow or project phase and want to improve the next cycle
-- Noticing repeated friction, errors, or wasted time in a process
-- Wanting a concrete, measurable win rather than a vague "things could be better"
-- Ready to invest 1-4 hours implementing one improvement and proving its value
+**Mode A (measured workflow optimization)** — when you:
+- Complete a major workflow or project phase and want to improve the next cycle
+- Notice repeated friction, errors, or wasted time in a process
+- Want a concrete, measurable win rather than a vague "things could be better"
+- Are ready to invest 1-4 hours implementing one improvement and proving its value
+
+**Mode B (cold-review enhancement)** — when you:
+- Have an artifact (skill, doc, script, template) that is central and worth getting right
+- Just wrote or extracted something and want a fresh pass to catch what authoring missed
+- Want to raise quality (completeness, correctness, robustness) where "minutes saved" doesn't apply
 
 ## Core Principles
 
 **One improvement at a time**: Don't brainstorm 10 ideas and implement none. Find the best one,
 implement it, measure it, then repeat the cycle.
 
-**Measure first, improve second**: If you can't measure the current state, you can't prove the
-improvement worked. Baseline measurement is mandatory, not optional.
+**Characterize "before" first**: Capture the current state before you change it — baseline numbers
+for Mode A, a ranked finding inventory for Mode B. If you can't characterize "before," you can't
+show the change helped.
 
 **Impact x Achievability**: The best improvement is not the highest-impact one (too hard) or the
 easiest one (too trivial). It's the one where impact x achievability is maximized.
 
-**Prove it worked**: An improvement without measured before/after data is just a guess. The cycle
-isn't complete until you have numbers showing the change delivered value.
+**Prove it worked**: An improvement you can't show the value of is just a change. Mode A proves it
+with before/after numbers and ROI; Mode B proves it with the folded-in fixes passing the artifact's
+checks. The cycle isn't complete until the value is demonstrated.
 
 ## Improvement Modes
 
@@ -268,6 +275,10 @@ ROI = (frequency_per_week x minutes_saved x 52) / (implementation_hours x 60)
 | 1-3x   | Marginal. Only implement if it also reduces errors.         |
 | < 1x   | Negative ROI. Don't implement unless non-time benefits.     |
 
+**Severity can override ROI.** Rework-minutes don't capture a catastrophic error -- a security hole,
+data loss, or a shipped false positive. When an error is high-severity, weight it well above its raw
+time cost; preventing one such error can justify the work regardless of the ROI number.
+
 ### What Counts as Measurable
 
 Good metrics (use these):
@@ -282,51 +293,21 @@ Bad metrics (avoid these):
 - "Improves quality" -- what specific quality metric changes?
 - "More consistent" -- count the inconsistencies before and after
 
-## Example: GRUB Review Workflow
+## Example: GRUB Review Workflow (Mode A, end to end)
 
-### Phase 1: Observation
+A compact full-cycle run (the Phase 1–2 walk-throughs above use this same workflow):
 
-Observed one week of review workflow:
+| # | Friction Point        | Freq/wk | Min | Err/wk | Weekly cost     | Effort | ROI    |
+|---|-----------------------|---------|-----|--------|-----------------|--------|--------|
+| 1 | Doc consistency check | 5       | 10  | 2      | 80 min          | 2h     | 34.7x  |
+| 2 | Format to 120 chars   | 10      | 5   | 3      | 65 min          | 1h     | 56.3x ←|
+| 3 | Review file creation  | 10      | 8   | 0      | 80 min          | 1.5h   | 46.2x  |
+| 4 | Statistics sync       | 3       | 5   | 1      | 25 min          | 1h     | 21.7x  |
 
-| # | Friction Point          | Freq/week | Min/each | Errors/week | Manual? |
-|---|-------------------------|-----------|----------|-------------|---------|
-| 1 | Doc consistency check   | 5         | 10       | 2           | Yes     |
-| 2 | Format to 120 chars     | 10        | 5        | 3           | Yes     |
-| 3 | Review file creation    | 10        | 8        | 0           | Yes     |
-| 4 | Statistics sync         | 3         | 5        | 1           | Yes     |
-
-### Phase 2: Scoring
-
-```
-#1: Weekly cost = 5x10 + 2x15 = 80 min.  Effort = 2h.  ROI = 4160/120 = 34.7x
-#2: Weekly cost = 10x5 + 3x5  = 65 min.  Effort = 1h.  ROI = 3380/60  = 56.3x ← selected
-#3: Weekly cost = 10x8         = 80 min.  Effort = 1.5h. ROI = 4160/90 = 46.2x
-#4: Weekly cost = 3x5 + 1x10  = 25 min.  Effort = 1h.  ROI = 1300/60  = 21.7x
-```
-
-Selected: #2 (format checking). Highest ROI, lowest effort, low risk.
-
-### Phase 3: Implementation
-
-Created `check_format.sh` -- scans all review files for lines > 120 chars, reports violations.
-1 hour to implement and test.
-
-### Phase 4: Measurement
-
-After 1 week of use:
-
-| Metric              | Before     | After      | Change  |
-|----------------------|-----------|------------|---------|
-| Time per check       | 5 min     | 10 sec     | -97%    |
-| Weekly time          | 50 min    | 1.7 min    | -97%    |
-| Late violations      | 3/week    | 0/week     | -100%   |
-| Actual annual saving | --        | 42 hours   | --      |
-| Actual ROI           | --        | 42x        | --      |
-
-### Phase 5: Next Cycle
-
-Re-observed workflow. #3 (review file creation) now the highest remaining friction.
-Started next cycle.
+Selected **#2** (highest ROI, low effort/risk). Implemented `check_format.sh` (1h) to scan review
+files for >120-char lines. Measured after a week: 5 min → 10 sec/check, late violations 3/wk → 0,
+~42 hours saved annually (actual ROI ~42x, matching the estimate). Next cycle: #3 is now the top
+remaining friction.
 
 ## Cold-Review Enhancement (Mode B)
 
@@ -362,16 +343,39 @@ fresh reading surfaces them. (Same principle as the fresh-context verifier in `d
 - Right after writing or extracting an artifact — a cold second pass catches what authoring missed.
 - **Not** for throwaway or rarely-used artifacts, where the review costs more than it returns.
 
+### Mode B example (this skills repo)
+
+Right after extracting the `delegate-and-verify` and `bug-patterns` skills, each got a cold read:
+- **delegate-and-verify**: the cold pass found the skill described the *shape* of delegation but
+  omitted how to brief an agent, failure/abort handling, a remediate-loop cap, and verifier
+  independence. Ranked, owner-selected, folded in, re-validated.
+- **bug-patterns**: the cold pass found no entry template (for a catalog meant to grow) and a
+  missing false-positive section; those were folded in, and gaps were named as draft candidates
+  rather than invented.
+
+In both, the warm author had not seen the gaps; the cold read did.
+
+## Combining the modes
+
+The modes compose -- a real improvement cycle often uses both:
+- **B → A**: a cold review frequently surfaces a *recurring manual friction* worth automating -- a
+  Mode A candidate. (Cold-reading the review workflow is what surfaced manual format-checking, the
+  Mode A example above.)
+- **A → B**: a Mode A improvement is often *delivered as an artifact* (a script or skill). Give that
+  artifact a Mode B cold-read before you make it the default path.
+- **Inside B**: step 5's "run the artifact's checks" is itself a Mode-A automated check -- e.g. the
+  skills validator. The automation (A) is what makes the quality pass (B) cheap to repeat.
+
 ## Red Flags
 
-**Don't use this skill when:**
+**Don't use Mode A when:**
 - The process is used less than 3x/week (not enough frequency to justify)
-- You can't measure the current state (no baseline = no proof)
+- You can't measure the current state (no baseline = no proof) — if it's an artifact, use Mode B
 - The "improvement" is speculative ("this might be useful someday")
 - Implementation effort exceeds 8 hours (that's a project, not an increment)
 - You're optimizing something already under 1 minute
 
-**Warning signs of bad improvements:**
+**Mode A warning signs:**
 - Can't write a concrete success metric with numbers
 - ROI calculation comes out below 3x
 - "Feels like it should be better" without friction data
@@ -384,7 +388,8 @@ fresh reading surfaces them. (Same principle as the fresh-context verifier in `d
 
 ## Checklist
 
-Use this checklist for each improvement cycle:
+Use the block(s) for the mode you are running (Observe/Score/Implement/Measure for Mode A;
+Cold-review for Mode B):
 
 ### Observe
 - [ ] Ran through or reviewed actual workflow execution
@@ -427,6 +432,9 @@ Use this checklist for each improvement cycle:
 - **2.1.0** (2026-10-14): Added Mode B (cold-review enhancement) -- read an artifact cold, rank
   findings by impact, let the owner select, fold in honestly, validate. The qualitative counterpart
   to the measured workflow; restores the skill's original quality-improvement intent.
+- **2.2.0** (2026-10-14): Reconciled Mode A/B framing (principles, when-to-use, red flags, checklist,
+  footer no longer assume measurement); added a Mode B example + "Combining the modes"; noted
+  severity can override ROI; condensed the duplicated worked example.
 
 ## See Also
 
@@ -437,5 +445,6 @@ Use this checklist for each improvement cycle:
 
 ---
 
-**Key Principle**: An improvement you can't measure is just a change. Measure before, implement,
-measure after, prove value.
+**Key Principle**: An improvement you can't characterize is just a change. Capture "before" (numbers
+for Mode A, a ranked finding list for Mode B), make the one change, then demonstrate the value (ROI,
+or fixes that pass the checks).
