@@ -2,7 +2,7 @@
 name: Code Review
 description: Complete workflow for reviewing patches/commits, documenting findings, and formatting results
 author: pvalena
-version: 3.19.0
+version: 3.19.1
 tags: [code-review, documentation, formatting, security, quality, verification, false-positives]
 ---
 
@@ -462,10 +462,9 @@ reentrancy safety. A quick clean pass is not sufficient for these areas.
 
 #### Common False Positive Patterns
 
-- **Double-free**: Review missed `ptr = NULL` between two frees
-- **NULL deref**: Review missed a guard check earlier in the function
-- **Resource leak**: `fd = open(); if (!fd) return;` — fd is 0
-  (invalid), not a real fd
+See the **bug-patterns** skill's "Common False Positives" — double-free masked by an intervening
+`ptr = NULL`, a NULL-deref guarded earlier in the function, and the `!fd` mis-test (fd 0 is valid).
+Check those before reporting.
 
 #### If You Find a False Positive
 
@@ -883,6 +882,8 @@ read code — you did not compile, run tests, or consult external specs.
 
 ## Version History
 
+- **3.19.1** (2026-10-14): Pointed "Common False Positive Patterns" at the `bug-patterns` skill's
+  "Common False Positives" (folded there) instead of restating the list.
 - **3.19.0** (2026-10-14): Connected the agent-delegation subsections and multi-MR workflow to the
   new `delegate-and-verify` skill (orchestration mechanics live there); trimmed the generic role
   descriptions, kept review-specific audit/claim/artifact detail.
