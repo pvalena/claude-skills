@@ -2,14 +2,15 @@
 name: Incremental Improvement
 description: Find the highest-impact achievable improvement in a workflow, implement it, and measure the result
 author: pvalena
-version: 2.0.0
+version: 2.1.0
 tags: [workflow, automation, analysis, productivity, measurement, roi, prioritization, experimental]
 ---
 
 # Incremental Improvement Skill (Experimental)
 
-**Purpose**: Systematically find the single most impactful and achievable improvement in a workflow,
-measure the current state, implement the change, and verify measurable enhancement.
+**Purpose**: Systematically find the single most impactful and achievable improvement — either in a
+workflow's measurable friction, or in the *quality* of an artifact you rely on — implement that one
+change, and verify it delivered value.
 
 > **Experimental**: ROI scoring and measurement framework not yet validated
 > across diverse project types.
@@ -36,7 +37,25 @@ easiest one (too trivial). It's the one where impact x achievability is maximize
 **Prove it worked**: An improvement without measured before/after data is just a guess. The cycle
 isn't complete until you have numbers showing the change delivered value.
 
+## Improvement Modes
+
+This skill covers two kinds of incremental improvement. Both pick the single highest-impact
+achievable change, make just that one, and prove it — they differ only in how "impact" and "proof"
+are measured:
+
+- **Mode A — Measured workflow optimization** (the Complete Workflow, Phases 1–5 below): reduce
+  quantifiable friction in a repeated process. Impact = time/errors saved; proof = before/after
+  numbers and ROI.
+- **Mode B — Cold-review enhancement** (the "Cold-Review Enhancement" section further down): raise
+  the *quality* of an artifact — a skill, doc, script, or template. Impact = a ranked inventory of
+  findings; proof = the folded-in fixes passing the artifact's checks.
+
+Pick the mode that fits what you're improving; the Red Flags and Checklist near the end note which
+parts apply to each.
+
 ## Complete Workflow
+
+*(Mode A — measured workflow optimization. For improving an artifact's quality, see Mode B below.)*
 
 ### Phase 1: Observe and Measure Current State
 
@@ -309,6 +328,40 @@ After 1 week of use:
 Re-observed workflow. #3 (review file creation) now the highest remaining friction.
 Started next cycle.
 
+## Cold-Review Enhancement (Mode B)
+
+Not every improvement is a timed workflow step. Strengthening an *artifact* — a skill, a doc, a
+script, a template — is also an incremental improvement, but its "measurement" is qualitative:
+completeness, correctness, robustness, clarity. Use this mode on an artifact the team relies on.
+
+The move that makes it work is **reviewing cold**: read the artifact as if it arrived from someone
+else, with no memory of writing it. Your own authoring context hides the omissions; a genuinely
+fresh reading surfaces them. (Same principle as the fresh-context verifier in `delegate-and-verify`
+— an independent pass has no shared blind spots.)
+
+### Procedure
+
+1. **Read it cold.** Pretend it was written by someone else and review the whole thing as an
+   external reviewer would — judge what is actually *there*, not what you *meant*.
+2. **Enumerate findings.** List everything omitted, unclear, fragile, duplicated, contradictory, or
+   likely to grow. For a load-bearing artifact, diligence is the value — look hard.
+3. **Rank by impact; drop the zero-impact.** Order findings by impact/criticality and discard the
+   trivial. If there are many, surface only the high-priority set. This ranked inventory *is* the
+   "measurement" for a qualitative change — the analog of Mode A's ROI table.
+4. **Let the owner choose.** Present the ranked findings and let the owner pick which to fold in;
+   don't unilaterally bloat the artifact. Each accepted finding is one scoped improvement.
+5. **Apply honestly, then validate.** Fold in the chosen items and run the artifact's checks (e.g.
+   the skills validator). Keep integrity: don't invent content to fill a gap — for an experiential
+   artifact, name the gap as a draft/candidate and mark the artifact experimental until real use
+   vets it. Record what changed (version history / changelog).
+
+### When Mode B fits
+
+- A central skill, template, or doc worth getting right (missing cases, ambiguity, or fragility
+  cost more than the review does).
+- Right after writing or extracting an artifact — a cold second pass catches what authoring missed.
+- **Not** for throwaway or rarely-used artifacts, where the review costs more than it returns.
+
 ## Red Flags
 
 **Don't use this skill when:**
@@ -323,6 +376,11 @@ Started next cycle.
 - ROI calculation comes out below 3x
 - "Feels like it should be better" without friction data
 - Improvement addresses a problem you've experienced once
+
+**Mode B (cold-review) warning signs:**
+- Reviewing "warm" — trusting what you meant instead of reading what's actually there.
+- Inventing content to fill a gap in an experiential artifact (mark it a draft/candidate instead).
+- Folding in every finding regardless of impact — rank and select; don't bloat the artifact.
 
 ## Checklist
 
@@ -352,6 +410,13 @@ Use this checklist for each improvement cycle:
 - [ ] Documented before/after comparison
 - [ ] Recorded completed improvement for reference
 
+### Cold-review (Mode B)
+- [ ] Read the artifact cold, as an external reviewer
+- [ ] Enumerated findings (omissions, fragility, duplication, growth)
+- [ ] Ranked by impact; dropped the zero-impact ones
+- [ ] Owner selected which findings to fold in
+- [ ] Applied, kept integrity (no invented content), and ran the artifact's checks
+
 ## Version History
 
 - **1.0.0** (2026-04-13): Initial version based on GRUB review workflow optimization
@@ -359,6 +424,9 @@ Use this checklist for each improvement cycle:
   workflow. Added concrete scoring formula, mandatory baseline/after measurement, single-item
   focus, and real ROI calculation. Removed generic brainstorming categories, placeholder output
   template, and duplicate workflow steps.
+- **2.1.0** (2026-10-14): Added Mode B (cold-review enhancement) -- read an artifact cold, rank
+  findings by impact, let the owner select, fold in honestly, validate. The qualitative counterpart
+  to the measured workflow; restores the skill's original quality-improvement intent.
 
 ## See Also
 
