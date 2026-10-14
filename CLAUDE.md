@@ -83,7 +83,9 @@ not restate the config's values, so they can't drift.
   (`commit.prefix`, `commit.body_style`) — currently a skill-name prefix
   (e.g., `review: trim v3.9`) with verbose detail in the body.
 
-See `MEMORY.md` for current metrics, validation details, and lessons learned.
+See `MEMORY.md` for current metrics, validation details, and lessons learned, and
+`DUMP_MEMORY.md` for the exhaustive cross-session knowledge transfer (the three
+documentation tiers are defined by the `memory-dump` skill).
 
 ## Development Workflow
 
