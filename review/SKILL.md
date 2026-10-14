@@ -2,7 +2,7 @@
 name: Code Review
 description: Complete workflow for reviewing patches/commits, documenting findings, and formatting results
 author: pvalena
-version: 3.17.1
+version: 3.18.0
 tags: [code-review, documentation, formatting, security, quality, verification, false-positives]
 ---
 
@@ -864,84 +864,12 @@ is a genuine leftover.
 
 ## Common Bug Patterns
 
-These are language-neutral patterns worth checking on any review. For pitfalls
-tied to a specific API contract, see Project-Specific Patterns below -- those are
-examples to replace with your own project's idioms.
-
-**Resource leak (FILE stream):**
-```
-fdopen(fd, "r") opens a FILE stream. If fclose(fp) is never called, both the
-FILE stream buffer and the underlying fd leak. Check every fdopen has a matching
-fclose on all return paths.
-```
-
-**Error/success conflation:**
-```
-Function returns errno (non-zero) on error and 1 on success. Caller tests
-`if (ret)` treating both as the same condition. Error silently treated as
-success. Check return value semantics match caller expectations.
-```
-
-**Dead code from branch ordering:**
-```
-Shell case statement: x*) matches before x), making x) unreachable. In C:
-default case before specific cases. Check that more specific patterns precede
-wildcards/defaults.
-```
-
-**Mutation of storage owned by an accessor:**
-```
-An accessor returns a pointer into internal/shared storage (often const char *).
-Code that casts away const and mutates through the pointer corrupts that storage.
-Even "temporary" mutations (*ext = '\0'; ...; *ext = '.';) are UB and fragile.
-Fix: copy before mutation (e.g. strdup), free the copy after use.
-(GRUB example: grub_env_get() returns internal environment-table storage.)
-```
-
-**Platform-dependent type sizes:**
-```
-sizeof(long) is 4 on 32-bit, 8 on 64-bit. If a spec defines a field as 64-bit,
-using long is correct only on 64-bit. Confirm which platforms a module actually
-builds for before assuming a width -- a build config may include 32-bit targets.
-Use fixed-width types (e.g. uint64_t) for spec-defined sizes.
-```
-
-**Documentation/code mismatch:**
-```
-Docs describe one delimiter/format/behavior, code implements another. Users
-following docs get broken results. Cross-reference documentation against actual
-parsing code.
-```
-
-**Dead code from guard conditions:**
-```
-Guard condition guarantees a value (e.g., !ptr means ptr is NULL). Code inside
-the guard operates on that value redundantly (e.g., free(ptr) where ptr is
-always NULL). Check what the guard condition guarantees about variables inside
-the block.
-```
-
-### Project-Specific Patterns (GRUB/C examples -- replace with your project's)
-
-These illustrate the *shape* of API-contract bugs, not a fixed checklist. Swap in
-the error-handling and parsing idioms of the code you actually review.
-
-**Wrong error check for a parse API (grub_strtol/grub_strtoull):**
-```
-grub_strtol() never sets *endp to NULL. On parse failure, *endp points into the
-string and grub_errno is set, so "if (endp != NULL)" is always true. The correct
-check is "if (grub_errno == GRUB_ERR_NONE)". Generalize: verify a parser's actual
-failure signal, not an assumed one.
-```
-
-**Leaked global error state (grub_errno):**
-```
-grub_errno is a global that persists until cleared. If a "non-fatal" operation
-fails and sets grub_errno but the function returns GRUB_ERR_NONE, a later
-grub_print_error() prints a spurious message. Clear the global after
-intentionally-ignored failures. Generalize: any global/thread-local error state
-(errno, GetLastError) leaks across best-effort calls if not reset.
-```
+A catalog of recurring, language-neutral bug patterns -- resource leaks, error/success
+conflation, dead code (branch ordering, guard conditions), const-storage mutation,
+platform-dependent type sizes, documentation/code mismatch -- plus project-specific
+API-contract examples lives in the **bug-patterns** skill. Consult it during "What to
+Look For" (Phase 1, step 5) and the Verify / Double-Check passes, and add new patterns
+there as you find them so the catalog grows.
 
 ---
 
@@ -968,6 +896,8 @@ read code — you did not compile, run tests, or consult external specs.
 
 ## Version History
 
+- **3.18.0** (2026-10-14): Extracted "Common Bug Patterns" into the standalone, growable
+  `bug-patterns` skill (link stub remains); condensed older version-history entries.
 - **3.17.1** (2026-10-14): Added `review-toolbox` to See Also (it is the mandatory read path).
 - **3.17.0** (2026-10-13): Made `rtb` the mandatory read path for all source inspection when a
   source is configured; converted the remaining raw `git show … | sed` / `git diff` examples to
@@ -977,22 +907,12 @@ read code — you did not compile, run tests, or consult external specs.
 - **3.15.0** (2026-09-30): Genericized Common Bug Patterns -- generic patterns
   are now language-neutral; GRUB/C-API-specific ones moved to a clearly-marked
   "Project-Specific Patterns" subsection to replace per project.
-- **3.14.0** (2026-08-26): Two-agent delegation pipeline: a review agent
-  writes artifacts (and its own companion files), a separate fresh-context
-  adversarial agent re-verifies, and the orchestrator approves without
-  routine re-verification (spot-checks only on red flags; bounces missing
-  companions back to the review agent).
-- **3.13.0** (2026-08-22): Re-review "became clean" handling: re-review the
-  reworked area fully, keep the prior round's `_reasoning.txt` unchanged for
-  traceability, add a new `_investigation.txt` for the clean re-verification,
-  and write the review in clean format linking the investigation file. The
-  one sanctioned case where a "No issues found" review keeps a reasoning file
-  (an investigation file must be present too).
-- **3.12.0** (2026-08-21): Named two recurring clean-review "Additional
-  findings" categories -- runtime no-ops for current callers, and
-  unreachable-but-real spec deviations -- with guidance to record both
-  as observations (never under "Issues Found", since neither has a
-  concrete failure case today). Drawn from the MR !227 TPM2 review.
+- **3.14.0** (2026-08-26): Two-agent delegation pipeline -- review agent writes artifacts, a
+  fresh-context adversarial agent re-verifies, orchestrator approves (spot-checks only).
+- **3.13.0** (2026-08-22): Re-review "became clean" handling -- review the reworked area fully,
+  keep the prior `_reasoning.txt`, add a new `_investigation.txt`, write in clean format.
+- **3.12.0** (2026-08-21): Named two clean-review "Additional findings" categories -- runtime
+  no-ops for current callers, and unreachable-but-real spec deviations (record as observations).
 - **3.11.0** (2026-07-23): Post-agent audit, format/completeness checks for agent-delegated reviews
 - **3.10.0** (2026-07-21): Re-review workflow for updated MRs
 - **3.9.0** (2026-07-16): Investigation files for large clean reviews
@@ -1013,5 +933,6 @@ read code — you did not compile, run tests, or consult external specs.
 ## See Also
 
 - **review-toolbox** - Read-only `rtb` wrapper; the mandatory read path for all source inspection
+- **bug-patterns** - Catalog of recurring bug patterns consulted during the look/verify passes
 - **refresh-docs** - For updating documentation after reviews change project state
 - **auto-memory** - For capturing review workflow knowledge in project MEMORY.md

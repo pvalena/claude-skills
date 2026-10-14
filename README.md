@@ -35,6 +35,7 @@ Used together, in order:
 | **verify-fix** | Verify security patches actually block the attack vector |
 | **upstream-fix** | Turn verified findings into per-issue upstream fix commits, each in its own worktree and adversarially reviewed (no build/test) |
 | **review-toolbox** | Read-only source inspection via the bundled `rtb` wrapper (named git/fs sources, composable filters, one-approval Bash permission) — supports the whole pipeline |
+| **bug-patterns** | Catalog of recurring code-review bug patterns (language-neutral + project-specific) consulted during review |
 
 ### Documentation
 

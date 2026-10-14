@@ -10,6 +10,7 @@ Skills are loaded by Claude Code from `~/.claude/skills/*/SKILL.md`.
 
 ```
 ├── auto-memory/        — Create/maintain project-level MEMORY.md files
+├── bug-patterns/       — Catalog of recurring code-review bug patterns (consulted by review)
 ├── commit/             — Project-aware commit workflow with convention discovery
 ├── create-skill/       — Meta-skill: framework for creating new skills
 │   └── validate_skills.sh  — Validation script for all skills
@@ -52,6 +53,7 @@ authoritative source of truth); see the `repo-config` skill.
 
 **Review tooling**:
 - `review-toolbox` — read-only source inspection via the bundled `rtb` wrapper
+- `bug-patterns` — catalog of recurring bug patterns, consulted during review
 
 ## Key Conventions
 
