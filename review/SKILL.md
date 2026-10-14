@@ -2,7 +2,7 @@
 name: Code Review
 description: Complete workflow for reviewing patches/commits, documenting findings, and formatting results
 author: pvalena
-version: 3.17.0
+version: 3.17.1
 tags: [code-review, documentation, formatting, security, quality, verification, false-positives]
 ---
 
@@ -968,6 +968,7 @@ read code — you did not compile, run tests, or consult external specs.
 
 ## Version History
 
+- **3.17.1** (2026-10-14): Added `review-toolbox` to See Also (it is the mandatory read path).
 - **3.17.0** (2026-10-13): Made `rtb` the mandatory read path for all source inspection when a
   source is configured; converted the remaining raw `git show … | sed` / `git diff` examples to
   `rtb cat/diff` (agents told to "follow exactly" were copying the raw-git examples).
@@ -1011,5 +1012,6 @@ read code — you did not compile, run tests, or consult external specs.
 
 ## See Also
 
+- **review-toolbox** - Read-only `rtb` wrapper; the mandatory read path for all source inspection
 - **refresh-docs** - For updating documentation after reviews change project state
 - **auto-memory** - For capturing review workflow knowledge in project MEMORY.md

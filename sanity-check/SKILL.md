@@ -2,7 +2,7 @@
 name: Sanity Check
 description: Quick scan of PR/commit content for malicious intent, prompt injection, and hidden payloads
 author: pvalena
-version: 1.3.0
+version: 1.3.1
 tags: [security, review, injection, sanity-check, supply-chain]
 ---
 
@@ -199,6 +199,7 @@ content at runtime. Defense: Phase 1.3 network check.
 
 ## Version History
 
+- **1.3.1** (2026-10-14): Added `review-toolbox` to See Also (the `rtb` wrapper Step 2 reads through).
 - **1.3.0** (2026-10-13): Step 2 manual inspection now reads through `rtb` (the read-only
   review-toolbox wrapper) when a source is configured -- 2.1 via `rtb messages`, 2.2 via `rtb
   diff` -- instead of `cd grub && git log/diff`, so inspection never bypasses the wrapper.
@@ -224,3 +225,4 @@ content at runtime. Defense: Phase 1.3 network check.
 
 - **review** - Full code review workflow (run after sanity check passes)
 - **verify-fix** - Verify security patches for correctness
+- **review-toolbox** - Read-only `rtb` wrapper used for the Step 2 message/diff reads
