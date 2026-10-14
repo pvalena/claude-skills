@@ -14,6 +14,7 @@ Skills are loaded by Claude Code from `~/.claude/skills/*/SKILL.md`.
 ├── commit/             — Project-aware commit workflow with convention discovery
 ├── create-skill/       — Meta-skill: framework for creating new skills
 │   └── validate_skills.sh  — Validation script for all skills
+├── delegate-and-verify/ — Delegate produce-then-verify work to sub-agents + adversarial pass
 ├── incremental-improvement/ — Find and measure highest-impact workflow improvement
 ├── memory-dump/        — Exhaustive knowledge-transfer dumps across sessions
 ├── patch-evaluation/   — Evaluate patch sets against upstream (backport/forwardport)
@@ -46,6 +47,7 @@ authoritative source of truth); see the `repo-config` skill.
 
 **Process**:
 - `incremental-improvement` — measure-implement-prove improvement cycle
+- `delegate-and-verify` — produce-then-verify sub-agent orchestration (used by review, upstream-fix)
 - `todo` — prioritize a TODO backlog by impact × achievability, draft and prune
 - `patch-evaluation` — classify/dedup/inspect patch sets against upstream
 - `repo-config` — authoritative per-project config read by other skills

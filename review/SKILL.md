@@ -2,7 +2,7 @@
 name: Code Review
 description: Complete workflow for reviewing patches/commits, documenting findings, and formatting results
 author: pvalena
-version: 3.18.0
+version: 3.19.0
 tags: [code-review, documentation, formatting, security, quality, verification, false-positives]
 ---
 
@@ -389,10 +389,10 @@ code that looks correct for being AI-assisted.
 
 #### Agent-Delegated Reviews
 
-When reviews are produced by spawned agents, treat every finding as
-a draft and every clean result as unverified. Agents have two
-failure modes: false claims (asserting behavior from training data)
-and format gaps (verbose findings, missing investigation files).
+When reviews are produced by spawned agents, apply the **delegate-and-verify** pattern (see that
+skill): treat every finding as a draft and every clean result as unverified. In review, agents
+have two failure modes worth auditing specifically — false claims (asserting behavior from
+training data) and format gaps (verbose findings, missing investigation files).
 
 **Claim verification** — three claim types need scrutiny:
 
@@ -433,30 +433,18 @@ correctly structured reviews but miss two things:
 
 #### Two-Agent Delegation Pipeline
 
-An alternative to the single-agent-plus-orchestrator-audit above:
-delegate the verification to a second agent instead of doing it in
-the main context. Preferred when review volume is high.
+For higher review volume, delegate the verification to a second agent rather than auditing in
+the main context. This is the **delegate-and-verify** pattern — see that skill for the worker /
+adversarial-verifier / orchestrator-gate mechanics. The review-specific instantiation:
 
-1. **Review agent** (one may handle several MRs) runs Phases 0-6 and
-   writes all artifacts — including the companion file when warranted
-   (reasoning for reviews with issues; investigation for large/complex
-   clean reviews). Producing companions is the review agent's job.
-2. **Adversarial agent** in a *separate, fresh context* independently
-   re-verifies every finding against source, hunts for false positives
-   and missed issues (false negatives), and checks the linter. This
-   pass replaces the orchestrator's own re-verification from the
-   single-agent model.
-3. **Orchestrator (main model)** reads the review and approves. It does
-   NOT re-verify against source routinely — the adversarial agent did
-   that. Spot-check source only on a red flag: a claim likely beyond
-   agent competence (subtle low-level/UB, crypto, spec or platform
-   assertions). Run the linter before approving. If a needed companion
-   file is missing, send the review agent back to produce it rather
-   than writing it in the main context.
+- The **review agent** writes all artifacts, including the companion file when warranted
+  (reasoning for reviews with issues; investigation for large/complex clean reviews).
+- The **adversarial agent** (fresh context) re-verifies every finding against source and hunts
+  false positives *and* missed issues, and checks the linter.
+- The **orchestrator** runs the linter before approving and bounces a missing companion file
+  back to the review agent rather than writing it in the main context.
 
-Trade-off: the fresh-context adversarial pass catches more than an
-orchestrator audit (no shared blind spots) at the cost of a second
-agent run. Keep the single-agent audit above for one-off reviews.
+Keep the single-agent audit above for one-off reviews.
 
 #### For Clean Reviews
 
@@ -753,9 +741,8 @@ initial review missed:
 
 ## Reviewing Multiple MRs
 
-When reviewing several MRs at once, run reviews in parallel where
-possible. Split into batches by complexity — large/complex MRs
-standalone, small ones in agent batches.
+When reviewing several MRs at once, follow the **delegate-and-verify** pattern (isolate per item,
+batch by complexity, run in parallel). The review-specific steps:
 
 1. **List all MRs** with commit counts and diff sizes
 2. **Split by complexity**: large MRs (hundreds of lines, new modules,
@@ -896,6 +883,9 @@ read code — you did not compile, run tests, or consult external specs.
 
 ## Version History
 
+- **3.19.0** (2026-10-14): Connected the agent-delegation subsections and multi-MR workflow to the
+  new `delegate-and-verify` skill (orchestration mechanics live there); trimmed the generic role
+  descriptions, kept review-specific audit/claim/artifact detail.
 - **3.18.0** (2026-10-14): Extracted "Common Bug Patterns" into the standalone, growable
   `bug-patterns` skill (link stub remains); condensed older version-history entries.
 - **3.17.1** (2026-10-14): Added `review-toolbox` to See Also (it is the mandatory read path).
@@ -934,5 +924,6 @@ read code — you did not compile, run tests, or consult external specs.
 
 - **review-toolbox** - Read-only `rtb` wrapper; the mandatory read path for all source inspection
 - **bug-patterns** - Catalog of recurring bug patterns consulted during the look/verify passes
+- **delegate-and-verify** - Orchestration pattern for the agent-delegated and multi-MR workflows
 - **refresh-docs** - For updating documentation after reviews change project state
 - **auto-memory** - For capturing review workflow knowledge in project MEMORY.md

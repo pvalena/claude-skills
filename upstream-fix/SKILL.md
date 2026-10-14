@@ -2,7 +2,7 @@
 name: Upstream Fix
 description: Turn verified vulnerability findings into per-issue fix commits on an upstream source tree, each isolated in its own worktree/branch, written by a sub-agent and adversarially reviewed, without building or testing (CI compiles). Embargo-aware.
 author: pvalena
-version: 1.0.0
+version: 1.1.0
 tags: [security, fix, patch, upstream, worktree, adversarial-review, subagents, embargo]
 ---
 
@@ -41,6 +41,10 @@ This is the step *after* triage/evaluation: triage decides *what is real and wor
    review reports live in the source repo, upstream-shaped.
 
 ## Workflow
+
+Phases 2–5 are an instance of the **delegate-and-verify** pattern (isolate per item → worker
+produces → separate adversarial verifier refutes → orchestrator gates → remediate until clean);
+see that skill for the general mechanics. The phases below add the upstream-fix specifics.
 
 ### Phase 0 — Gather
 Collect, per issue: the finding files (affected file/function, root cause, recommended fix) and the
@@ -112,6 +116,7 @@ decision items a reviewer needs. Specifically:
 
 ## See Also
 
+- **delegate-and-verify** — the general produce-then-verify orchestration pattern Phases 2–5 apply.
 - **review** — produces the verified findings this skill consumes; also the per-fix adversarial
   review workflow + report format each fix is held to.
 - **verify-fix** — confirm each produced fix actually blocks the vector before the human gate.
@@ -119,6 +124,8 @@ decision items a reviewer needs. Specifically:
 
 ## Version History
 
+- **1.1.0** (2026-10-14): Connected Phases 2–5 to the new `delegate-and-verify` skill (the general
+  produce-then-verify orchestration pattern); upstream-fix specifics unchanged.
 - **1.0.0**: Initial version — per-issue worktree/branch isolation, Sonnet fix sub-agents, adversarial
   review via the `review` skill, remediate-until-SOUND loop, no-build/no-push constraints, multi-model
   co-author trailers, and the final-state review-text conventions.

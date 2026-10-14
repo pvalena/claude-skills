@@ -2,7 +2,7 @@
 name: Review Toolbox
 description: Read-only source inspection for code/security review via the bundled `rtb` wrapper — named git/fs sources, composable filters, a whitelisted `git -C` read path, and one-approval Bash permission. Use instead of ad-hoc `cd … && git show/grep … | sed …`.
 author: pvalena
-version: 1.5.0
+version: 1.5.1
 tags: [review, security, read-only, git, tooling]
 ---
 
@@ -177,9 +177,11 @@ when searching). Empty output under `--all` = the string never existed anywhere 
 - **review** — full structured code review; use `rtb` as its read path.
 - **sanity-check** — quick pre-review malicious-intent scan; `rtb` for the reads.
 - **verify-fix** — confirm a patch blocks the vector; `rtb` to diff before/after at each ref.
+- **delegate-and-verify** — `rtb facts` is how you hand a delegated worker its read-context up front.
 
 ## Version History
 
+- **1.5.1**: Added `delegate-and-verify` to See Also (`rtb facts` hands workers their read-context).
 - **1.0.0**: Initial version — read-only `git -C` wrapper with named sources (git+fs),
   composable line/grep/head filters, `facts`/`sources`/`refs`/`cat`/`grep`/`log`/`ls`, and
   one-approval Bash permission model.
