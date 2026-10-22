@@ -2,7 +2,7 @@
 name: Bug Patterns
 description: Catalog of recurring code-review bug patterns: language-neutral checks plus project-specific examples
 author: pvalena
-version: 1.1.0
+version: 1.2.0
 tags: [code-review, bugs, patterns, security, correctness, reference, experimental]
 ---
 
@@ -109,6 +109,38 @@ always NULL). Check what the guard condition guarantees about variables inside
 the block.
 ```
 
+**Overflow/underflow in size or index math:**
+```
+Size arithmetic on attacker- or header-influenced values (a - b, n * size,
+len + 1) can wrap: a subtraction underflows to a huge unsigned value, a product
+overflows. The wrapped value then drives an allocation, a copy length, or an
+index. Confirm the inputs can reach the wrapping range, then use checked
+arithmetic (a checked sub/add/mul helper that errors on wrap).
+(Seen: a GRUB loader did file_size - header_size with bare `-`, underflowing a
+memcpy length.)
+```
+
+**Refactor silently drops a built-in check:**
+```
+A refactor swaps a call that performed an implicit check for a raw equivalent
+that does not -- e.g. a bounds/short-read-checked read replaced by a plain
+memcpy, or a validating accessor replaced by direct field access. Nothing in the
+diff "looks wrong" because the removed check was never visible. When reviewing a
+refactor, ask what guarantee the old call gave that the new one doesn't, and
+confirm it is re-established.
+```
+
+**Secret exposure in CI logs / process arguments:**
+```
+A build/CI script that handles a secret (signing key, token, passphrase) runs
+under `set -x`, so every command is echoed with its variables expanded into the
+job log; or a secret is passed on a command line (--password "$X") where it
+shows in the trace and the process list. CI logs are widely readable and log
+masking is opt-in and partial. Fix: don't xtrace secret-handling commands; pass
+secrets via stdin/a file/env, not argv. Generalize: any secret reaching a log
+sink or an argv is exposed.
+```
+
 ## Common False Positives
 
 The flip side of the catalog -- things that look like a listed pattern but are not. Check these
@@ -149,7 +181,6 @@ do not copy their names into a review. Promote a candidate into the sections abo
 per "Adding an entry") when a real review surfaces it; until then they only mark intended coverage.
 **Needs real-world feedback.**
 
-- Integer overflow / wraparound in size or index math (e.g. `n * size` allocations).
 - Off-by-one / loop- and buffer-bound errors.
 - Use-after-free and double-free (beyond the false-positive note above).
 - Signedness bugs (signed/unsigned comparison; a negative value flowing into a `size_t`).
@@ -165,6 +196,9 @@ per "Adding an entry") when a real review surfaces it; until then they only mark
 
 ## Version History
 
+- **1.2.0** (2026-10-22): Added language-neutral entries for secret exposure in CI logs/argv and for
+  refactors that silently drop a built-in check; promoted the integer overflow/underflow candidate to
+  a vetted entry (checked size/index arithmetic). Drawn from GRUB release-CI and loader reviews.
 - **1.1.0** (2026-10-14): Added an "Adding an entry" template (+ grow-by-category guidance), a
   "Common False Positives" section (folded from `review`), and a clearly-separated draft "Candidate
   Patterns" list (category placeholders, unvetted). Marked the skill experimental.
