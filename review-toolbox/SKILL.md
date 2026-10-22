@@ -2,7 +2,7 @@
 name: Review Toolbox
 description: Read-only source inspection for code/security review via the bundled `rtb` wrapper — named git/fs sources, composable filters, a whitelisted `git -C` read path, and one-approval Bash permission. Use instead of ad-hoc `cd … && git show/grep … | sed …`.
 author: pvalena
-version: 1.5.1
+version: 1.6.0
 tags: [review, security, read-only, git, tooling]
 ---
 
@@ -27,7 +27,8 @@ This gives:
 - Any time you would otherwise run `git show <ref>:<file>`, `git grep <pat> <ref> -- …`, or
   `sed -n 'A,Bp'` / `grep -n … -A N` against a review source repo.
 - Before spawning a review subagent: run `rtb facts` and paste the output into its prompt so
-  it starts with the correct paths, tags, version mapping, and hard rules.
+  it starts with the correct paths, tags, version mapping, and hard rules — and instruct the
+  subagent to run `rtb facts` itself too (see Workflow step 2).
 
 ## Workflow
 
@@ -35,7 +36,10 @@ This gives:
    read: upstream git source(s) + any patched/unpacked `fs` tree, plus an optional `RTB_FACTS`
    narrative. Run `rtb sources` to confirm they resolve.
 2. **Hand facts to the reviewer** — run `rtb facts` and paste the output into your own working
-   notes or a review subagent's prompt, so paths/tags/rules are fixed up front.
+   notes or a review subagent's prompt, so paths/tags/rules are fixed up front. When the
+   reviewer is a subagent, also *instruct* it to run `rtb facts` itself as its first action —
+   the pasted copy is a fallback for prompt-construction time, not a substitute for the live
+   output, which may differ if facts were updated or the agent is resumed later.
 3. **Read, don't run** — inspect code with `rtb cat` / `rtb grep` / `rtb log` / `rtb ls`,
    chaining `--lines`/`--grep`/`--ctx`/`--head`/`--tail` instead of piping through `sed`/`grep`.
    Pick the source/ref with `--src`/`--ref`.
@@ -181,6 +185,8 @@ when searching). Empty output under `--all` = the string never existed anywhere 
 
 ## Version History
 
+- **1.6.0**: A subagent should run `rtb facts` itself, not just receive the pasted copy -- a
+  pasted-only snapshot can go stale (facts updated, agent resumed later).
 - **1.5.1**: Added `delegate-and-verify` to See Also (`rtb facts` hands workers their read-context).
 - **1.0.0**: Initial version — read-only `git -C` wrapper with named sources (git+fs),
   composable line/grep/head filters, `facts`/`sources`/`refs`/`cat`/`grep`/`log`/`ls`, and
