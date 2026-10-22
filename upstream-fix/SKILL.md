@@ -2,7 +2,7 @@
 name: Upstream Fix
 description: Turn verified vulnerability findings into per-issue fix commits on an upstream source tree, each isolated in its own worktree/branch, written by a sub-agent and adversarially reviewed, without building or testing (CI compiles). Embargo-aware.
 author: pvalena
-version: 1.1.0
+version: 1.2.0
 tags: [security, fix, patch, upstream, worktree, adversarial-review, subagents, embargo]
 ---
 
@@ -86,10 +86,10 @@ sibling call sites / other writers, regression risk, soundness/style). It writes
 `INCORRECT`), findings (severity · where · why · suggested change), and human-decision items.
 
 ### Phase 5 — Remediate until SOUND
-On `INSUFFICIENT`/`INCORRECT`, re-task the original fix agent with the finding; it **amends** its
-commit (keep it to one commit) and you **re-review**. Repeat until the verdict is SOUND. (This loop
-earns its keep — adversarial passes catch second-order bugs the first fix missed, e.g. a *secondary*
-overflow left after the primary one was guarded.)
+The `delegate-and-verify` remediation loop (see that skill — including its round cap and
+escalation): on `INSUFFICIENT`/`INCORRECT` the fix agent amends its single commit and you
+re-review until `SOUND`. The loop catches second-order bugs — e.g. a *secondary* overflow left
+after the primary one was guarded.
 
 ### Phase 6 — Human gate, then PRs
 Present a summary (issue · branch · commit · file · fix · verdict). The human **eyeballs** each
@@ -124,6 +124,9 @@ decision items a reviewer needs. Specifically:
 
 ## Version History
 
+- **1.2.0** (2026-10-22): Trimmed Phase 5 to defer the remediation mechanics -- including the round
+  cap and escalation it was missing -- to the `delegate-and-verify` skill, keeping the SOUND verdicts
+  and the security example. Net gain: the loop cap is now inherited, not absent.
 - **1.1.0** (2026-10-14): Connected Phases 2–5 to the new `delegate-and-verify` skill (the general
   produce-then-verify orchestration pattern); upstream-fix specifics unchanged.
 - **1.0.0**: Initial version — per-issue worktree/branch isolation, Sonnet fix sub-agents, adversarial
