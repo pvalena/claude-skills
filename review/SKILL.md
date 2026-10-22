@@ -2,7 +2,7 @@
 name: Code Review
 description: Complete workflow for reviewing patches/commits, documenting findings, and formatting results
 author: pvalena
-version: 3.19.1
+version: 3.20.0
 tags: [code-review, documentation, formatting, security, quality, verification, false-positives]
 ---
 
@@ -80,8 +80,7 @@ If SUSPICIOUS: note the flags and apply extra scrutiny during Phase 1.
 #### 1. List and Count Commits
 
 ```bash
-git log --oneline origin/master..BRANCH
-git log --oneline origin/master..BRANCH | wc -l
+rtb log --ref origin/master..BRANCH --head 1000
 ```
 
 Record the exact count -- you must review every commit and list each one in the review file.
@@ -89,12 +88,12 @@ Record the exact count -- you must review every commit and list each one in the 
 #### 2. Read Commit Messages
 
 ```bash
-git log origin/master..BRANCH --format=full
+rtb messages --ref origin/master..BRANCH
 ```
 
 Check commit messages for:
 - **Factual accuracy**: Do referenced commits (e.g., "Fixes commit abc123") actually exist?
-  Verify with `git log --oneline --all --grep="abc123"`.
+  Verify with `rtb log --all --cmsg-grep abc123`.
 - **Correctness of claims**: Does the commit message accurately describe what the code does?
   Cross-reference each claim against the actual diff.
 - **AI-assisted flag**: Look for `Assisted-by:`, `Co-authored-by:`, or similar tags indicating
@@ -105,7 +104,8 @@ Check commit messages for:
 `.rtbrc`), ALL source inspection goes through `rtb`, the read-only wrapper
 (`~/.claude/skills/review-toolbox/rtb`). Never read code with raw git in any form — not
 `git -C <repo> …`, not `cd <repo> && git show/log/diff …`, not `git … | sed/head/grep`. The
-examples below use `rtb`; map any raw-git habit onto it.
+examples below use `rtb`; map any raw-git habit onto it. (The sole exception is a `git cat-file
+-t` *existence* probe in re-review — it returns an object type, never content.)
 
 #### 3. Read the Full Diff
 
@@ -270,11 +270,17 @@ reasoning file for reviews with issues. Move all detailed analysis
 (per-file traces, edge case verification, regex behavior analysis,
 API contract verification) to the investigation file. The review's
 "Additional findings" section should then be 3-6 lines covering
-only the crucial points.
+only the crucial points. When a project-local review linter is present (`helpers/lint-reviews.sh`),
+it WARNs past ~6 lines — treat that WARN as a real signal to trim, not noise. If an agent-written review
+already has the investigation file but a long "Additional findings" (duplicating the
+investigation file's content instead of pointing to it), trim it in place rather than
+re-reviewing; nothing is lost since the detail already lives in the investigation file.
 
 **For small/simple clean reviews** (1-3 commits, single file, routine
 changes), an investigation file is not needed. Keep the "Additional
-findings" section brief (a few sentences of non-obvious observations).
+findings" section brief (a few sentences of non-obvious observations). If the agent wrote more
+than that, either trim it or, if the detail is genuinely worth keeping, create the investigation
+file after all and move it there — don't leave a long analysis sitting in the review itself.
 
 Do NOT restate process facts ("read the full source", "commit messages
 match") -- those are taken for granted. Do NOT add per-commit
@@ -374,7 +380,7 @@ When commit messages contain `Assisted-by:`, `Co-authored-by:` with
 an AI tool name, apply additional scrutiny:
 
 1. **Verify commit message claims**: AI messages may reference
-   commits/functions that don't exist. Check with `git log --grep`.
+   commits/functions that don't exist. Check with `rtb log --cmsg-grep PATTERN`.
 2. **Holistic fit**: AI code can be locally correct but miss build
    system interactions, downstream consumers, or project patterns.
 3. **Comments/docs accuracy**: AI comments may contain subtle
@@ -670,7 +676,7 @@ done
 **Review file:**
 - [ ] Title includes MR/PR identifier and brief description
 - [ ] All commits listed with hashes and descriptions
-- [ ] Commit count matches actual (`git log --oneline | wc -l`)
+- [ ] Commit count matches actual (`rtb log --ref origin/master..BRANCH --head 1000`)
 - [ ] No severity labels on issues
 - [ ] No "Review Result" summary section
 - [ ] Each issue has location (file, function, lines)
@@ -772,26 +778,33 @@ is to review only what changed — not repeat the full review.
 
 ### 1. Identify What Changed
 
+**First, fetch the current commit list fresh** — `rtb log --ref origin/master..BRANCH --head
+1000` — and use that, not the prior review's commit list, as your starting point. Do not assume
+the branch still has the same commit count or order; a rework can add, drop, split, or merge
+commits between rounds, and the comparison in this section only works correctly if you start
+from what's actually there now.
+
 Compare old commit hashes (from the existing review file) against the
 new branch. Old hashes survive as dangling objects after a rebase.
 
 ```bash
-# Verify old hashes still exist
+# Verify old hashes still exist (the sole allowed raw git read -- an
+# existence probe, no file content; everything else below goes through rtb)
 git cat-file -t OLD_HASH
 
 # Compare patch content (ignoring rebase-induced blob hash changes)
-diff <(git diff OLD^..OLD) <(git diff NEW^..NEW)
+diff <(rtb diff OLD^ OLD) <(rtb diff NEW^ NEW)
 ```
 
 Zero diff = identical commit (just rebased). Non-zero = actual change.
 
 Also check whether origin/master moved between rebases:
 ```bash
-git log --oneline OLD_HASH^..NEW_HASH^ | head -10
+rtb log --ref OLD_HASH^..NEW_HASH^ --head 10
 ```
 
 Master movement changes blob hashes but not the MR's own patch
-content. The `diff <(git diff ...)` comparison handles this correctly.
+content. The `diff <(rtb diff ...)` comparison handles this correctly.
 
 ### 2. Classify Each Commit
 
@@ -802,10 +815,33 @@ For each commit in the new branch, determine:
   delta — what was added, removed, or restructured.
 - **New**: not present in the old branch. Full review needed.
 
+Also check the reverse direction: does every OLD commit have a match (by content, not just
+title) among the current commits?
+
+- **Dropped**: an old commit's hash and content are both genuinely gone — not folded into
+  another commit, not just renamed. Do not silently accept this as fine or skip it. Read the
+  CURRENT source and determine, with line citations, whether the condition it fixed is (a)
+  still addressed another way, (b) no longer reachable because surrounding code changed, or
+  (c) a regression — the bug is back. A dropped commit is exactly as reportable as a new one if
+  its fix is actually missing; treat the investigation with the same rigor as reviewing new
+  code, not as a formality. When the commit count differs from the prior round at all, do a
+  full fresh review of the resulting code rather than relying solely on the delta comparison —
+  the structural change is itself a signal that more than a mechanical diff happened.
+
+When confirming a previously-reported issue is now resolved, check it against CURRENT behavior
+by reading the actual resulting source (`rtb cat`, full function) — not just "is the old bad
+line/commit gone." The author may have fixed the same bug differently on rework, and "the exact
+old line is gone" is not the same claim as "the bug is fixed."
+
 ### 3. Update Review File
 
 - Update the commit list (new hashes, new count).
-- Add a "Re-review" header line stating what changed.
+- Add a **`**Re-review**:` intro paragraph that states what changed, in at most ~4 lines** — not
+  why it's safe and not the supporting trace. Name the dropped/reworked/unchanged commits and
+  point to "Additional findings" and the investigation file for the analysis; do not re-argue
+  the conclusion in the intro (the project-local `helpers/lint-reviews.sh`, when present, WARNs
+  past 4 lines here — a real regression was an 8-line intro that duplicated the Additional
+  findings and investigation file almost verbatim).
 - For unchanged commits: one line ("unchanged, verified").
 - For reworked/new commits: review as normal, but keep the review
   brief — move detailed analysis to the investigation file.
@@ -882,6 +918,12 @@ read code — you did not compile, run tests, or consult external specs.
 
 ## Version History
 
+- **3.20.0** (2026-10-22): Re-review must fetch the commit list fresh (never assume the prior
+  round's count), added a "Dropped" commit classification, and capped the "Re-review" intro to
+  ~4 lines -- both length caps now WARNed by `helpers/lint-reviews.sh` (project-local).
+- **3.19.2** (2026-10-21): Closed raw-git gaps missed by 3.17.0 -- Phase 1 steps 1-2, the
+  AI-message/completeness checklists, and the re-review hash-diff section now all use
+  `rtb log`/`rtb messages`/`rtb diff` (raw `git cat-file -t` stays as the one exception).
 - **3.19.1** (2026-10-14): Pointed "Common False Positive Patterns" at the `bug-patterns` skill's
   "Common False Positives" (folded there) instead of restating the list.
 - **3.19.0** (2026-10-14): Connected the agent-delegation subsections and multi-MR workflow to the
